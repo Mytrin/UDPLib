@@ -7,7 +7,7 @@ package com.gmail.lepeska.martin.udplib;
  * Clients usually send all important messages to host, who sends them to all clients.
  * Host keeps and updates info about network, its users and their "ping" to him.
  *  
- * Group IP(224.0.0.0 to 239.255.255.255) * 
+ * Group IP(224.0.0.0 to 239.255.255.255)
  * 
  * @author Martin Lepeška
  */

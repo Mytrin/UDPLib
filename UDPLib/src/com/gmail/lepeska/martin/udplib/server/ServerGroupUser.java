@@ -8,7 +8,7 @@ import com.gmail.lepeska.martin.udplib.client.GroupUser;
  * @author Martin Lepeška
  */
 public class ServerGroupUser extends GroupUser{
-
+    /**Time stamp since last ping request to this user*/
     protected long lastPingTime = -1;
     
     /**
@@ -18,11 +18,16 @@ public class ServerGroupUser extends GroupUser{
     public ServerGroupUser(String name, String ip) {
         super(name, ip);
     }
-    
+    /**
+     * Updates pingToHost value
+     */
     public void pingReceived(){
         pingToHost = System.currentTimeMillis() - lastPingTime;
     }
     
+    /**
+     * Notifies about sending ping request(creates timestamp)
+     */
     public void pingSent(){
         lastPingTime = System.currentTimeMillis();
     }
