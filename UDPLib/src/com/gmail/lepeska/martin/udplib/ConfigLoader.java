@@ -18,7 +18,7 @@ public final class ConfigLoader {
     /** Indicator that some configuration was already loaded */
      private static boolean configLoaded = false;
      /** Loaded values */
-     private static HashMap<String, String> CONFIG;
+     private static final HashMap<String, String> CONFIG = new HashMap<>();
      /** Singleton */
      private ConfigLoader(){}
      
@@ -28,7 +28,6 @@ public final class ConfigLoader {
      */
     public synchronized static final boolean loadConfig(){
         try{
-            CONFIG = new HashMap<>();
             loadConfig(new File("udplib_config.xml"));
         }catch(Exception e){
             Logger.getLogger(ConfigLoader.class.getName()).log(Level.SEVERE, "Config not loaded! ", e);
