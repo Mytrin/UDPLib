@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+Default UDPLib config file.
+-->
+<root>
+    <!-- IP in network interface, which should be used by server -->
+    <!-- Zeros mean all interfaces -->
+    <item name="default-ip" >0.0.0.0</item>
+    <item name="default-port">52511</item>
+    <item name="default-group">225.226.227.228</item>
+</root>
