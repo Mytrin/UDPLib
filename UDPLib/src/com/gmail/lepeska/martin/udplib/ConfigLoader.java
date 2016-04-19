@@ -10,7 +10,7 @@ import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 
 /**
- * Class making easier XML files handling and loading basic library configuration.
+ * Class making easier handling XML files and loading basic library configuration.
  *
  * @author Martin Lepeška
  */
@@ -66,7 +66,15 @@ public final class ConfigLoader {
      * @param itemName name of tag
      * @return its value or null
      */
-    public synchronized String getValue(String itemName){
+    public synchronized static String getString(String itemName){
         return CONFIG.get(itemName);
+    }
+    
+    /**
+     * @param itemName name of tag
+     * @return its value or null
+     */
+    public synchronized static int getInt(String itemName){
+        return Integer.parseInt(CONFIG.get(itemName));
     }
 }

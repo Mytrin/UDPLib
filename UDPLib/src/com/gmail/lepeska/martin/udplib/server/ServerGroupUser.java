@@ -11,6 +11,7 @@ public class ServerGroupUser extends GroupUser{
     /**Time stamp since last ping request to this user*/
     protected long lastPingTime = -1;
     
+    
     /**
     * @param name Name of user  in group
     * @param ip IP of user

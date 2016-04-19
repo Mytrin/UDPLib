@@ -5,7 +5,11 @@ Default UDPLib config file.
 <root>
     <!-- IP in network interface, which should be used by server -->
     <!-- Zeros mean all interfaces -->
-    <item name="default-ip" >0.0.0.0</item>
+    <item name="default-server-ip" >0.0.0.0</item>
     <item name="default-port">52511</item>
     <item name="default-group">225.226.227.228</item>
+    <!-- Time between server requests for response from other users (ms) -->
+    <item name="user-info-period">10000</item>
+    <!-- Time, which will server wait after sending request, before it announces user as dead (ms) -->
+    <item name="dead-time">5000</item>
 </root>

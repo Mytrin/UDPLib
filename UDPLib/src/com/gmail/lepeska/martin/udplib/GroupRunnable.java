@@ -37,6 +37,7 @@ public abstract class GroupRunnable implements Runnable{
    //DATA
    /**Received messages*/
    protected List<StoredMessage> messages= Collections.synchronizedList(new LinkedList<>());
+   protected Encryptor encryptor;
    
    //THREAD
     /** Indicator, that thread is running*/
