@@ -9,7 +9,9 @@ Default UDPLib config file.
     <item name="default-port">52511</item>
     <item name="default-group">225.226.227.228</item>
     <!-- Time between server requests for response from other users (ms) -->
-    <item name="user-info-period">10000</item>
+    <item name="user-info-period">5000</item>
     <!-- Time, which will server wait after sending request, before it announces user as dead (ms) -->
-    <item name="dead-time">5000</item>
+    <item name="dead-time">2000</item>
+    <!-- Message sent in CLIENT_ACCESS_REQUEST datagram, must be same as server's -->
+    <item name="access-helo">CLIENT_ACCESS_REQUEST</item>
 </root>

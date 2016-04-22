@@ -1,5 +1,7 @@
 package com.gmail.lepeska.martin.udplib.client;
 
+import java.net.InetAddress;
+
 
 /**
  * Class for storing info about users of network.
@@ -12,7 +14,7 @@ public class GroupUser {
     /**Time, which it takes to packet from this user to reach Host*/
    protected long pingToHost=PING_UNKNOWN; //-1 = unknown yet
    /**IP of user*/
-   public String ip;
+   public InetAddress ip;
    /**Name of user  in group*/
    public String name;
 
@@ -20,7 +22,7 @@ public class GroupUser {
     * @param name Name of user  in group
     * @param ip IP of user
     */
-    public GroupUser(String name, String ip){
+    public GroupUser(String name, InetAddress ip){
         this.name=name;
         this.ip=ip;
     }

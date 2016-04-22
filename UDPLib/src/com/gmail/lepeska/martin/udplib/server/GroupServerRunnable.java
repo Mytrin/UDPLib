@@ -1,24 +1,32 @@
 package com.gmail.lepeska.martin.udplib.server;
 
 import com.gmail.lepeska.martin.udplib.ConfigLoader;
-import com.gmail.lepeska.martin.udplib.GroupRunnable;
+import com.gmail.lepeska.martin.udplib.DatagramTypes;
+import com.gmail.lepeska.martin.udplib.Datagrams;
+import com.gmail.lepeska.martin.udplib.Encryptor;
+import com.gmail.lepeska.martin.udplib.IGroupRunnable;
+import com.gmail.lepeska.martin.udplib.UDPLibException;
 import com.gmail.lepeska.martin.udplib.client.GroupUser;
+import java.net.DatagramPacket;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.MulticastSocket;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.Objects;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  *
- * @author mytrin
+ * @author Martin Lepeška
  */
-public class GroupServerRunnable extends GroupRunnable{
+public class GroupServerRunnable extends IGroupRunnable{
      /**Users, which already responded on ping*/
     private final ArrayList<ServerGroupUser> groupUsers= new ArrayList<>();
     /**This thread maintains info about group network*/
-    private final Thread refreshThread;
+    private final ServerGroupInfoThread refreshThread;
     
     public static void main(String[] args) throws UnknownHostException{
         if(ConfigLoader.loadConfig()){
@@ -46,8 +54,9 @@ public class GroupServerRunnable extends GroupRunnable{
         this.hostAddress = InetAddress.getByName(hostAddress);
         this.groupAddress = InetAddress.getByName(groupAddress);
         this.port = port;
-        this.refreshThread = new Thread(new ServerGroupInfoThread(userInfoPeriod, deadTime));
+        this.refreshThread = new ServerGroupInfoThread(userInfoPeriod, deadTime);
         this.refreshThread.setDaemon(true);
+        this.encryptor = (groupPassword!=null)?new Encryptor(groupPassword):new Encryptor();
     }
     
     /**
@@ -97,31 +106,72 @@ public class GroupServerRunnable extends GroupRunnable{
     public GroupServerRunnable(String userName) throws UnknownHostException{
         this(userName, null, ConfigLoader.getString("default-server-ip"), ConfigLoader.getString("default-group"), ConfigLoader.getInt("default-port"));
     }
-        
-    @Override
-    public void run() {
+    
+    /**
+     * Creates important components, which could not been created in constructor, before starting loop.
+     */
+    private void init(){
         try{
             socket = new MulticastSocket(new InetSocketAddress(hostAddress, port));
             socket.joinGroup(groupAddress);
             
+            refreshThread.setGroupServer(this);
             refreshThread.start();
             
-            //while(!Thread.currentThread().isInterrupted()){
-                //TODO receive datagram
-            //}
-            
-            finishThread();
-            
-            System.out.println("FINISH");
         }catch(Exception e){
-            System.err.println(e);
+           finishThread();
+           Logger.getLogger(ConfigLoader.class.getName()).log(Level.SEVERE, "Thread shut down! ", e);
+           
+           finishThread();
+                      
+           throw new UDPLibException("Thread shut down! ", e);
         }
+    }
+        
+    @Override
+    public void run() {
+        init();
+            
+        while(!Thread.currentThread().isInterrupted()){
+            try{
+                byte[] buf = new byte[Datagrams.MAXIMUM_DATA_LENGTH];
+                byte[] decryptedBuf;
+                
+                // receive request
+                DatagramPacket packet = new DatagramPacket(buf, buf.length);
+                socket.receive(packet);
+                
+                DatagramTypes type = Datagrams.getDatagramType(buf);
+                
+                if(type == DatagramTypes.CLIENT_EXPLORE_REQUEST){
+                    
+                }else{
+                    decryptedBuf = encryptor.decrypt(buf);
+                    type = Datagrams.getDatagramType(decryptedBuf);
+                    
+                    if(type != DatagramTypes.TRASH){
+                        dealWithPacket(packet, type, buf);
+                    }else{
+                        //trash    
+                        Logger.getLogger(ConfigLoader.class.getName()).log(Level.WARNING, "Trash received: {0} -> {1} ", new String[]{new String(buf), new String(decryptedBuf)});
+                    }
+                }
+                
+            }catch(Exception e){
+                 Logger.getLogger(ConfigLoader.class.getName()).log(Level.SEVERE, "Error when parsing datagram! ", e);
+            }
+        }
+
+        finishThread();
     }
 
     @Override
     protected void finishThread() {
         super.finishThread();
-        refreshThread.interrupt();
+        
+        if(refreshThread != null){
+            refreshThread.interrupt();
+        }
     }
 
     @Override
@@ -134,8 +184,70 @@ public class GroupServerRunnable extends GroupRunnable{
         return (GroupUser[])groupUsers.toArray();
     }
     
+    /**
+     * Called by ServerGroupInfoThread.
+     * Request for all group members response,
+     * anyone who will not respond in time,
+     * is considered as dead.
+     */
     void sendIsAliveRequests(){
+        byte[] data = Datagrams.createIsAliveRequestDatagram(encryptor);
+        sendMulticastDatagram(data);
         
+        groupUsers.stream().forEach((user) -> {
+            user.pingSent();
+        });
+    }
+    
+    /**
+     * Called by ServerGroupInfoThread.
+     * Removes any presumably dead users.
+     */
+    void killDead(){
+        Iterator<ServerGroupUser> userIt = groupUsers.iterator();
+        
+        while(userIt.hasNext()){
+            ServerGroupUser user = userIt.next();
+            
+            if(user.waitingForResponse() && user.couldBeDead()){
+                byte[] data = Datagrams.createUserDeadDatagram(encryptor, user);
+                sendMulticastDatagram(data);
+                
+                userIt.remove();
+            }
+        }
+    }
+    
+    /**
+     * Called by ServerGroupInfoThread.
+     * Announces current group state to all group users.
+     */
+    void sendInfo(){
+        groupUsers.stream().forEach((user) -> {
+            byte[] data = Datagrams.createUserInfoDatagram(encryptor, user);
+            sendMulticastDatagram(data);
+        });
+    }
+
+    @Override
+    public void sendMessage(GroupUser target, String message) {
+        byte[] data = Datagrams.createMessageDatagram(encryptor, message, false, this);
+        sendDatagram(target, data);
+    }
+
+    @Override
+    public void sendMulticastMessage(String message) {
+        byte[] data = Datagrams.createMessageDatagram(encryptor, message, false, this);
+        sendMulticastDatagram(data);
+    }
+    
+    private void respondToExplore(DatagramPacket source){
+        sendDatagram(source.getAddress(), Datagrams.createExploreResponse(this.groupPassword != null));
+    }
+
+    @Override
+    protected void dealWithPacket(DatagramPacket source, DatagramTypes type, byte[] data) {
+        //TODO
     }
     
 }

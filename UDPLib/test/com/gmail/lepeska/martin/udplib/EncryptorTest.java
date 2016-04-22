@@ -5,7 +5,7 @@ import static org.junit.Assert.*;
 
 /**
  *
- * @author mytrin
+ * @author Martin Lepeška
  */
 public class EncryptorTest {
 
@@ -28,6 +28,16 @@ public class EncryptorTest {
         byte[] encrypted = enc.encrypt(message.getBytes());
 
         assertNotEquals(new String(enc2.decrypt(encrypted)), message);
+    }
+    
+    @Test
+    public void testDelay() {
+        Encryptor enc = new Encryptor("ABCDEFGHIJKLMNOP");
+        String message = "Average length message, Mytrin was here!";
+        byte[] encrypted = enc.encrypt(message.getBytes());
+        long decryptStart= System.currentTimeMillis();
+        assertEquals(new String(enc.decrypt(encrypted)), message);
+        System.out.println("DECRYPT TIME: "+(System.currentTimeMillis()-decryptStart));
     }
     
 }

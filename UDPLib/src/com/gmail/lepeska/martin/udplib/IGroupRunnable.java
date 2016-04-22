@@ -1,19 +1,19 @@
 package com.gmail.lepeska.martin.udplib;
 
 import com.gmail.lepeska.martin.udplib.client.GroupUser;
+import java.net.DatagramPacket;
 import java.net.InetAddress;
 import java.net.MulticastSocket;
 import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * Common methods and components of GroupRunnables.
  * 
  * @author Martin Lepeška
  */
-public abstract class GroupRunnable implements Runnable{
+public abstract class IGroupRunnable implements Runnable{
    //NETWORK
    /**
    * Socket which sends and receives messages(full duplex). 
@@ -31,8 +31,6 @@ public abstract class GroupRunnable implements Runnable{
    protected String userName;
    /**Group password*/
    protected String groupPassword="none";
-   /**Indicates, if topology changed since last call of usersChanged() */
-   protected AtomicBoolean usersChanged = new AtomicBoolean(false);
    
    //DATA
    /**Received messages*/
@@ -63,15 +61,6 @@ public abstract class GroupRunnable implements Runnable{
    public String getUserName() {
 	return userName;
    }
-   
-   /**
-    * @return true, if topology changed since last call of usersChanged()
-    */
-    public boolean UsersChanged() {
-        boolean toReturn = usersChanged.get();
-        usersChanged.set(false);
-        return toReturn;
-    }
 
    /**
     * @return List of network members
@@ -103,8 +92,65 @@ public abstract class GroupRunnable implements Runnable{
       running = false;
    }
    
+   /**
+    * Deals with received datagram.
+    * @param source DatagramPacket containing UDPLib datagram
+    * @param type type of UDPLib datagram
+    * @param data  decrypted data of datagram
+    */
+   protected abstract void dealWithPacket(DatagramPacket source, DatagramTypes type, byte[] data);
+   
   /**
    * Ends communication(GroupServerThread destroys network)
    */
    public abstract void leave();
+   
+   /**
+    * Sends datagram with given data to specified GroupUser
+    * @param target who should receive this datagram
+    * @param data what should user receive
+    */
+   public synchronized void sendDatagram(InetAddress target, byte[] data){
+       try{
+           DatagramPacket packet = new DatagramPacket(data, data.length, target, port); 
+           socket.send(packet);
+       }catch(Exception e){
+           throw new UDPLibException("Unable to send datagram: ", e);
+       }
+   }
+   
+   /**
+    * Sends datagram with given data to specified GroupUser
+    * @param target User, who should receive this datagram
+    * @param data what should user receive
+    */
+   public synchronized void sendDatagram(GroupUser target, byte[] data){
+       sendDatagram(target.ip, data);
+   }
+   
+   /**
+    * Sends datagram with given data to all GroupUsers
+    * @param data what should everyone receive
+    */
+   public synchronized void sendMulticastDatagram(byte[] data){
+       try{
+           DatagramPacket packet = new DatagramPacket(data, data.length, groupAddress, port); 
+           socket.send(packet);
+       }catch(Exception e){
+           throw new UDPLibException("Unable to send datagram: ", e);
+       }
+   }
+   
+   /**
+    * Encodes(id password is used) and sends given message to specified GroupUser
+    * @param target User, who should receive this message
+    * @param message String, which should user receive
+    */
+   public abstract void sendMessage(GroupUser target, String message);
+   
+   /**
+    * Encodes(id password is used) and sends given message to all GroupUsers
+    * @param message String, which should everyone receive
+    */
+   public abstract void sendMulticastMessage(String message);
 }

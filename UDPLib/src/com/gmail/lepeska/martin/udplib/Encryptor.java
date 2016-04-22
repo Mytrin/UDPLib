@@ -20,7 +20,14 @@ public class Encryptor {
     private Cipher cipher;
     /**Key containing password, needs to be 16 characters long(128bit)*/
     private final Key aesKey;
-    
+
+    /**
+     * Dummy encryptor, which returns given bytes as encoded
+     */
+    public Encryptor() {
+        this.aesKey = null;
+    }
+
     /**
      * @param password password, needs to be 16 characters long(128bit)
      */
@@ -50,12 +57,15 @@ public class Encryptor {
      * @return encrypt message
      */
     public byte[]encrypt(byte[] decrypted){
-         try{
-             cipher.init(Cipher.ENCRYPT_MODE, aesKey);
-             return cipher.doFinal(decrypted);
-         }catch(IllegalBlockSizeException | InvalidKeyException  | BadPaddingException e ){
+         if(aesKey != null){
+             try{
+                cipher.init(Cipher.ENCRYPT_MODE, aesKey);
+                return cipher.doFinal(decrypted);
+            }catch(IllegalBlockSizeException | InvalidKeyException  | BadPaddingException e ){
               throw new UDPLibException("Failed to decrypt message: ", e);
-         } 
+            } 
+         }
+         return decrypted;
     }
     
     /**
@@ -64,12 +74,15 @@ public class Encryptor {
      * @return  decrypted message
      */
     public byte[]decrypt(byte[] encrypted){
-         try{
-             cipher.init(Cipher.DECRYPT_MODE, aesKey);
-             return cipher.doFinal(encrypted);
-         }catch(IllegalBlockSizeException | InvalidKeyException | BadPaddingException e){
-              throw new UDPLibException("Failed to decrypt message: ", e);
-         }
+        if(aesKey != null){
+            try{
+               cipher.init(Cipher.DECRYPT_MODE, aesKey);
+               return cipher.doFinal(encrypted);
+            }catch(IllegalBlockSizeException | InvalidKeyException | BadPaddingException e){
+               throw new UDPLibException("Failed to decrypt message: ", e);
+            }
+        }
+        return encrypted;
     }
 
 }

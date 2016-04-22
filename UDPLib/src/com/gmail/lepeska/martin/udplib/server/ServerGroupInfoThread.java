@@ -2,6 +2,8 @@ package com.gmail.lepeska.martin.udplib.server;
 
 import com.gmail.lepeska.martin.udplib.UDPLibException;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  * This thread is responsible for maintaining info about current group users.
@@ -9,7 +11,7 @@ import java.util.concurrent.atomic.AtomicInteger;
  *
  * @author Martin Lepeška
  */
-public class ServerGroupInfoThread implements Runnable{
+public class ServerGroupInfoThread extends Thread{
 
     /**Time between server sending info about group users and requesting response from other users (ms)*/
     private final AtomicInteger userInfoPeriod;
@@ -24,6 +26,7 @@ public class ServerGroupInfoThread implements Runnable{
      * @param deadTime Time, which will server wait after sending request, before it announces user as dead (ms)
      */
     public ServerGroupInfoThread(int userInfoPeriod, int deadTime) {
+        super("ServerGroupInfoThread");
         this.userInfoPeriod = new AtomicInteger(userInfoPeriod);
         this.deadTime = new AtomicInteger(deadTime);
     }
@@ -33,9 +36,18 @@ public class ServerGroupInfoThread implements Runnable{
         if(groupServer == null){
             throw new UDPLibException("Started ServerGroupInfoThread while groupThread value was not set!");
         }
-        while(!Thread.currentThread().isInterrupted()){
+
+        while(!isInterrupted()){
             try{
+                Thread.sleep(userInfoPeriod.get());
+                groupServer.sendInfo();
                 
+                groupServer.sendIsAliveRequests();
+                Thread.sleep(deadTime.get());
+                groupServer.killDead();
+            }catch(InterruptedException ex){
+                 Logger.getLogger(GroupServerRunnable.class.getName()).log(Level.WARNING, "Shutting down ServerGroupInfoThread...", ex);
+                 interrupt();
             }catch(Exception e){
                 throw new UDPLibException("ServerGroupInfoThread loop problem: ", e);
             }
