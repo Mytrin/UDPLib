@@ -88,6 +88,7 @@ public abstract class IGroupRunnable implements Runnable{
    protected void finishThread(){
       if(socket != null){
           socket.close();
+          socket = null;
       }
       running = false;
    }

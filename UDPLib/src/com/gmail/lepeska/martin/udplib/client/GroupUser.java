@@ -34,4 +34,12 @@ public class GroupUser {
         return pingToHost;
     }
 
+    /**
+     * Used by GroupClientRunnable
+     * @param pingToHost Time, which it takes to packet from this user to reach Host
+     */
+    void setPingToHost(long pingToHost) {
+        this.pingToHost = pingToHost;
+    }
+
 }

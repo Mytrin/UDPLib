@@ -2,6 +2,8 @@ package com.gmail.lepeska.martin.udplib;
 
 import com.gmail.lepeska.martin.udplib.client.GroupUser;
 import com.gmail.lepeska.martin.udplib.server.GroupServerRunnable;
+import java.net.InetAddress;
+import java.util.Arrays;
 
 
 /**
@@ -18,6 +20,8 @@ public class Datagrams {
     public static final int MAXIMUM_DATA_LENGTH = 512;
     /**Start sequence of bytes, which identifies, that datagram is sent by UDPLib*/
     public static final byte[] DATAGRAM_HEADER = ("UDPL").getBytes();
+    /**Special character, which marks certain parts of message*/
+    public static final String DELIMITER = "|";
     
     private Datagrams() {}
     
@@ -30,6 +34,9 @@ public class Datagrams {
     
     /**
      * Creates UDPLib message datagram with given type. Private because of safety(messageType shouldn't be exposed)
+     * 
+     * HEAD(NB)TYPE(1B)MESSAGE
+     * 
      * @param encryptor Encryptor of sending thread
      * @param message data to be sent
      * @param messageType identifies type of packet and role of sender
@@ -91,7 +98,7 @@ public class Datagrams {
      * @return data of UDPLib CLIENT_IS_ALIVE_RESPONSE datagram
      */
     public static byte[] createUserInfoDatagram(Encryptor encryptor, GroupUser user){
-        String message = user.name+"|"+user.ip+"|"+user.getPingToHost();
+        String message = user.name+DELIMITER+user.ip+DELIMITER+user.getPingToHost();
 
         return createDatagram(encryptor, message, DatagramTypes.SERVER_CLIENTS_INFO);
     }
@@ -103,7 +110,7 @@ public class Datagrams {
      * @return data of UDPLib SERVER_CLIENT_DEAD datagram
      */
     public static byte[] createUserDeadDatagram(Encryptor encryptor, GroupUser user){
-        String message = user.name+"|"+user.ip+"|";
+        String message = user.name+DELIMITER+user.ip;
 
         return createDatagram(encryptor, message, DatagramTypes.SERVER_CLIENT_DEAD);
     }
@@ -136,6 +143,32 @@ public class Datagrams {
     }
     
     /**
+     * 
+     * @param encryptor Encryptor of sending thread
+     * @param username Client's name in group
+     * @param password Group password
+     * @return data of UDPLib CLIENT_ACCESS_REQUEST datagram
+     */
+    public static byte[] createClientAccessRequest(Encryptor encryptor, String username, String password){
+        String message = password+DELIMITER+username;
+        
+        return createDatagram(encryptor, message, DatagramTypes.CLIENT_ACCESS_REQUEST);
+    }
+    
+    /**
+     * HEAD(N B)TYPE(1B)GROUP|USE_PASSWORD
+     * @param encryptor Encryptor of sending thread
+     * @param groupAddress Group address of sending thread
+     * @param accept true if recipient is accepted to group
+     * @return data of UDPLib SERVER_ACCEPT_CLIENT_RESPONSE datagram
+     */
+    public static byte[] createServerAcceptClientResponse(Encryptor encryptor, InetAddress groupAddress,boolean accept){
+        String message = groupAddress.toString()+DELIMITER+(accept?1:0);
+        
+        return createDatagram(encryptor, message, DatagramTypes.SERVER_ACCEPT_CLIENT_RESPONSE);
+    }
+    
+    /**
      * @param data Data of datagram
      * @return DatagramType of this datagram or TRASH
      */
@@ -150,5 +183,14 @@ public class Datagrams {
         }else{
             return DatagramTypes.TRASH;
         }
+    }
+    
+    /**
+     * @param decryptedData already decrypted datagram data
+     * @return datagram data without UDPLib prefix(header + type)
+     */
+    public static byte[] unpack(byte[] decryptedData){
+        //+1 for type
+        return Arrays.copyOfRange(decryptedData, DATAGRAM_HEADER.length, MAXIMUM_DATA_LENGTH);
     }
 }

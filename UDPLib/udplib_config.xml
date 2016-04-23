@@ -12,6 +12,4 @@ Default UDPLib config file.
     <item name="user-info-period">5000</item>
     <!-- Time, which will server wait after sending request, before it announces user as dead (ms) -->
     <item name="dead-time">2000</item>
-    <!-- Message sent in CLIENT_ACCESS_REQUEST datagram, must be same as server's -->
-    <item name="access-helo">CLIENT_ACCESS_REQUEST</item>
 </root>
