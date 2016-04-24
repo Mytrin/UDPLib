@@ -1,0 +1,114 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.web.*?>
+<?import javafx.geometry.*?>
+<?import javafx.scene.text.*?>
+<?import java.lang.*?>
+<?import java.util.*?>
+<?import javafx.scene.*?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+
+
+<AnchorPane id="AnchorPane" prefHeight="555.0" prefWidth="832.0" xmlns:fx="http://javafx.com/fxml/1" xmlns="http://javafx.com/javafx/8.0.40" fx:controller="com.gmail.lepeska.martin.udplib.example.ExampleController">
+   <children>
+      <TabPane prefHeight="555.0" prefWidth="832.0" tabClosingPolicy="UNAVAILABLE">
+        <tabs>
+          <Tab text="Example chat">
+            <content>
+              <AnchorPane minHeight="0.0" minWidth="0.0" prefHeight="180.0" prefWidth="200.0">
+                     <children>
+                        <VBox alignment="CENTER" prefHeight="527.0" prefWidth="832.0">
+                           <children>
+                              <HBox alignment="CENTER" prefHeight="486.0" prefWidth="832.0">
+                                 <children>
+                                    <VBox alignment="CENTER" prefHeight="486.0" prefWidth="248.0">
+                                       <children>
+                                          <ListView fx:id="userView" prefHeight="229.0" prefWidth="248.0" />
+                                          <ListView fx:id="fileView" prefHeight="224.0" prefWidth="248.0" />
+                                          <HBox alignment="CENTER" prefHeight="38.0" prefWidth="248.0" spacing="30.0">
+                                             <children>
+                                                <Button mnemonicParsing="false" onMouseClicked="#showFile" text="Show file" />
+                                                <Button mnemonicParsing="false" text="Share file" />
+                                             </children>
+                                          </HBox>
+                                       </children>
+                                    </VBox>
+                                    <ListView fx:id="chatBox" prefHeight="481.0" prefWidth="585.0" />
+                                 </children>
+                                 <opaqueInsets>
+                                    <Insets />
+                                 </opaqueInsets>
+                              </HBox>
+                              <HBox alignment="CENTER" prefHeight="41.0" prefWidth="832.0" spacing="10.0">
+                                 <children>
+                                    <Button mnemonicParsing="false" onMouseClicked="#create" text="Create" />
+                                    <Button mnemonicParsing="false" onMouseClicked="#connect" text="Connect" />
+                                    <Button mnemonicParsing="false" onMouseClicked="#disconnect" text="Disconnect" />
+                                    <Button mnemonicParsing="false" onMouseClicked="#explore" text="Explore" />
+                                    <Separator minWidth="36.0" orientation="VERTICAL" prefHeight="36.0" prefWidth="36.0" />
+                                    <TextField fx:id="sendBox" prefHeight="26.0" prefWidth="296.0" />
+                                  <Button mnemonicParsing="false" onMouseClicked="#send" text="Send" />
+                                    <Button mnemonicParsing="false" onMouseClicked="#whisper" text="Whisper" />
+                                 </children>
+                                 <padding>
+                                    <Insets bottom="5.0" />
+                                 </padding>
+                              </HBox>
+                           </children>
+                        </VBox>
+                     </children>
+                  </AnchorPane>
+            </content>
+          </Tab>
+          <Tab text="Documentation">
+            <content>
+              <AnchorPane minHeight="0.0" minWidth="0.0" prefHeight="180.0" prefWidth="200.0">
+                     <children>
+                        <WebView fx:id="docView" prefHeight="525.0" prefWidth="832.0" />
+                     </children>
+                  </AnchorPane>
+            </content>
+          </Tab>
+            <Tab text="About">
+              <content>
+                <AnchorPane minHeight="0.0" minWidth="0.0" prefHeight="180.0" prefWidth="200.0">
+                     <children>
+                        <VBox alignment="CENTER" prefHeight="526.0" prefWidth="832.0" spacing="10.0">
+                           <children>
+                              <Text strokeType="OUTSIDE" strokeWidth="0.0" text="UDPLib" textAlignment="CENTER">
+                                 <font>
+                                    <Font size="36.0" />
+                                 </font>
+                                 <VBox.margin>
+                                    <Insets bottom="20.0" left="10.0" right="10.0" />
+                                 </VBox.margin>
+                              </Text>
+                              <Text fx:id="versionText" strokeType="OUTSIDE" strokeWidth="0.0" text="Version: " textAlignment="CENTER">
+                                 <font>
+                                    <Font size="18.0" />
+                                 </font>
+                              </Text>
+                              <Text strokeType="OUTSIDE" strokeWidth="0.0" text="Author: Martin Lepeška" textAlignment="CENTER">
+                                 <font>
+                                    <Font size="18.0" />
+                                 </font>
+                              </Text>
+                              <Text strokeType="OUTSIDE" strokeWidth="0.0" text="Special thanks to: Jakub Jakoubek" textAlignment="CENTER">
+                                 <font>
+                                    <Font size="18.0" />
+                                 </font>
+                              </Text>
+                           </children>
+                           <opaqueInsets>
+                              <Insets />
+                           </opaqueInsets>
+                        </VBox>
+                     </children>
+                  </AnchorPane>
+              </content>
+            </Tab>
+        </tabs>
+      </TabPane>
+   </children>
+</AnchorPane>

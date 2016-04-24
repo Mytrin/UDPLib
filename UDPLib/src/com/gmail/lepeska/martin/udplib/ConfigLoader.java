@@ -15,6 +15,8 @@ import org.w3c.dom.NodeList;
  * @author Martin Lepeška
  */
 public final class ConfigLoader {
+    /**Version of this library*/
+    public static final String VERSION ="DEV 2";
     /** Indicator that some configuration was already loaded */
      private static boolean configLoaded = false;
      /** Loaded values */

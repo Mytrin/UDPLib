@@ -1,0 +1,84 @@
+package com.gmail.lepeska.martin.udplib;
+
+import com.gmail.lepeska.martin.udplib.server.GroupServerThread;
+import java.net.UnknownHostException;
+
+/**
+ * AGroupNetwork implementation, which creates new group network, where user becomes "server."
+ * 
+ * @author Martin Lepeška
+ */
+public class ServerGroupNetwork extends AGroupNetwork{
+
+    /**
+     * Prepares new GroupServerThread bound on interface of given hostAddress with given password and group address.
+     * 
+     * @param userName User's name in network
+     * @param groupPassword Password required to access this group or null, if none
+     * @param hostAddress Address in network interface, which should server socket use
+     * @param groupAddress Address of used multi cast group
+     * @param port Port of server socket
+     * @param userInfoPeriod Time between server sends info about group users and requests response from other users (ms)
+     * @param deadTime Time, which will server wait after sending request, before it announces user as dead (ms)
+     * @throws java.net.UnknownHostException
+     */
+    public ServerGroupNetwork(String userName, String groupPassword, String hostAddress, 
+            String groupAddress, int port, int userInfoPeriod, int deadTime) throws UnknownHostException,UDPLibException {
+        if(!ConfigLoader.isConfigLoaded()){
+            this.groupThread = new GroupServerThread(userName, groupPassword, hostAddress, 
+                    groupAddress, port, userInfoPeriod, deadTime);
+        }else{
+            throw new UDPLibException("Config was not loaded yet!");
+        }
+    }
+    
+        
+    /**
+     * Prepares new GroupServerThread bound on interface of given hostAddress with given password and default group address loaded from configuration file.
+     * 
+     * @param userName User's name in network
+     * @param groupPassword Password required to access this group or null, if none
+     * @param hostAddress Address in network interface, which should server socket use
+     * @param groupAddress Address of used multi cast group
+     * @param port Port of server socket
+     * @throws UnknownHostException 
+     */
+    public ServerGroupNetwork(String userName, String groupPassword, String hostAddress, String groupAddress, int port) throws UnknownHostException{
+        this(userName, groupPassword, hostAddress, groupAddress, port, ConfigLoader.getInt("user-info-period"), ConfigLoader.getInt("dead-time"));
+    }
+
+    /**
+     * Prepares new GroupServerThread on interface of given hostAddress with given password and default group address loaded from configuration file.
+     * 
+     * @param userName User's name in network
+     * @param groupPassword Password required to access this group or null, if none
+     * @param hostAddress Address in network interface, which should server socket use
+     * @param port Port of server socket
+     * @throws UnknownHostException 
+     */
+    public ServerGroupNetwork(String userName, String groupPassword, String hostAddress, int port) throws UnknownHostException{
+        this(userName, groupPassword, hostAddress, ConfigLoader.getString("default-group"), port);
+    }
+
+    /**
+     * Prepares new GroupServerThread with given password and default values loaded from configuration file.
+     * 
+     * @param userName User's name in network
+     * @param groupPassword Password required to access this group or null, if none
+     * @throws UnknownHostException 
+     */
+    public ServerGroupNetwork(String userName, String groupPassword) throws UnknownHostException{
+        this(userName, groupPassword, ConfigLoader.getString("default-server-ip"), ConfigLoader.getString("default-group"), ConfigLoader.getInt("default-port"));
+    }
+    
+    /**
+     * Prepares new GroupServerThread with no required password and default values loaded from configuration file.
+     * 
+     * @param userName User's name in network
+     * @throws UnknownHostException 
+     */
+    public ServerGroupNetwork(String userName) throws UnknownHostException{
+        this(userName, null, ConfigLoader.getString("default-server-ip"), ConfigLoader.getString("default-group"), ConfigLoader.getInt("default-port"));
+    }
+
+}

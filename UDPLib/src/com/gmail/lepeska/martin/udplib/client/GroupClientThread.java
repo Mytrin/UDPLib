@@ -4,7 +4,7 @@ import com.gmail.lepeska.martin.udplib.ConfigLoader;
 import com.gmail.lepeska.martin.udplib.DatagramTypes;
 import com.gmail.lepeska.martin.udplib.Datagrams;
 import com.gmail.lepeska.martin.udplib.Encryptor;
-import com.gmail.lepeska.martin.udplib.IGroupRunnable;
+import com.gmail.lepeska.martin.udplib.AGroupThread;
 import com.gmail.lepeska.martin.udplib.StoredMessage;
 import com.gmail.lepeska.martin.udplib.UDPLibException;
 import java.io.IOException;
@@ -16,28 +16,25 @@ import java.net.NetworkInterface;
 import java.net.SocketTimeoutException;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.Objects;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /**
  *
- * @author mytrin
+ * @author Martin Lepeška
  */
-public class GroupClientRunnable  extends IGroupRunnable{
+public class GroupClientThread  extends AGroupThread{
     
     /**Users in group*/
     private final ArrayList<GroupUser> groupUsers= new ArrayList<>();
 
     /**Expected server address*/
     private final InetAddress serverAddress;
-    
-    public static void main(String[] args) throws UnknownHostException{
-        if(ConfigLoader.loadConfig()){
-            new Thread(new GroupClientRunnable("Max", null, "25.146.244.201")).start();
-        }
-    }
-    
+
     /**
      * Creates new GroupClientRunnable bound on interface of given hostAddress with given password and server address.
      * 
@@ -47,25 +44,13 @@ public class GroupClientRunnable  extends IGroupRunnable{
      * @param port Port of server socket
      * @throws UnknownHostException 
      */
-    public GroupClientRunnable(String userName, String groupPassword, String serverAddress, int port) throws UnknownHostException{
+    public GroupClientThread(String userName, String groupPassword, String serverAddress, int port) throws UnknownHostException{
         Objects.requireNonNull(userName);
         this.userName = userName;
         this.groupPassword = groupPassword;
         this.serverAddress = InetAddress.getByName(serverAddress);
         this.port = port;
         this.encryptor = (groupPassword!=null)?new Encryptor(groupPassword):new Encryptor();
-    }
-    
-    /**
-     * Creates new GroupClientRunnable with given password and default values loaded from configuration file.
-     * 
-     * @param userName User's name in network
-     * @param groupPassword Password required to access this group or null, if none
-     * @param serverAddress Address of group owner
-     * @throws UnknownHostException 
-     */
-    public GroupClientRunnable(String userName, String groupPassword, String serverAddress) throws UnknownHostException{
-        this(userName, groupPassword, serverAddress, ConfigLoader.getInt("default-port"));
     }
     
     /**
@@ -87,9 +72,7 @@ public class GroupClientRunnable  extends IGroupRunnable{
             
             byte[] decryptedReponse = encryptor.decrypt(responseData);
             String responseStr = new String(Datagrams.unpack(decryptedReponse)).trim();
-            
-            System.out.println(responseStr);
-            
+
             if(Datagrams.getDatagramType(responseData) == DatagramTypes.SERVER_ACCEPT_CLIENT_RESPONSE){
                 String[] responseSplit = responseStr.split(Datagrams.DELIMITER);
                 
@@ -108,6 +91,10 @@ public class GroupClientRunnable  extends IGroupRunnable{
                     socket.setSoTimeout(0);
                     
                     this.groupUsers.add(new GroupUser(userName, hostAddress));
+                    
+                    listeners.stream().forEach((listener) -> {
+                      listener.joined();
+                    });
                 }else{
                     throw new UDPLibException("Wrong password!");
                 }
@@ -140,10 +127,8 @@ public class GroupClientRunnable  extends IGroupRunnable{
                 socket.receive(packet);
 
                 decryptedBuf = encryptor.decrypt(buf);
-                DatagramTypes    type = Datagrams.getDatagramType(decryptedBuf);
-                    
-                System.out.println("-> "+new String(decryptedBuf).trim()+" type: "+type.name());
-                    
+                DatagramTypes type = Datagrams.getDatagramType(decryptedBuf);
+
                 if(type != DatagramTypes.TRASH){
                     dealWithPacket(packet, type, Datagrams.unpack(decryptedBuf));
                 }else{
@@ -172,18 +157,25 @@ public class GroupClientRunnable  extends IGroupRunnable{
                                       if(user != null){
                                           user.setPingToHost(Long.parseLong(messageSplit[2]));
                                       }else{
-                                          user = new GroupUser(messageSplit[0], InetAddress.getByName(messageSplit[1]));
-                                          user.setPingToHost(Long.parseLong(messageSplit[2]));
-                                          groupUsers.add(user);
+                                          GroupUser newUser = new GroupUser(messageSplit[0], InetAddress.getByName(messageSplit[1]));
+                                          newUser.setPingToHost(Long.parseLong(messageSplit[2]));
+                                          groupUsers.add(newUser);
+                                          listeners.stream().forEach((listener) -> {
+                                                listener.userJoined(newUser);
+                                          });
                                       }
                                       break;
-                case SERVER_CLIENT_DEAD:  user = findGroupUserbyInetAddr(InetAddress.getByName(messageSplit[1]));
-                                      if(user != null){
-                                          groupUsers.remove(user);
+                case SERVER_CLIENT_DEAD:  GroupUser kickedUser = findGroupUserbyInetAddr(InetAddress.getByName(messageSplit[1]));
+                                      if(kickedUser != null){
+                                          groupUsers.remove(kickedUser);
                                           
-                                          if(user.name.equals(userName) && user.ip.equals(hostAddress)){
+                                          if(kickedUser.name.equals(userName) && kickedUser.ip.equals(hostAddress)){
                                               finishThread();
                                               throw new UDPLibException("Kicked out from group!");
+                                          }else{
+                                              listeners.stream().forEach((listener) -> {
+                                                    listener.userKicked(kickedUser);
+                                              });
                                           }
                                       }
                                       break;
@@ -191,18 +183,18 @@ public class GroupClientRunnable  extends IGroupRunnable{
                                           break;
                 case CLIENT_UNICAST_MESSAGE:    user = findGroupUserbyInetAddr(source.getAddress());
                                             if(!(user != null && user.name.equals(userName) && user.ip.equals(hostAddress))){ //discard own messages
-                                                messages.add(new StoredMessage(new String(data), user, false));
-                                            }   
+                                                addMessage(new StoredMessage(new String(data), user, false));
+                                            }
                                             break;
                 case CLIENT_MULTICAST_MESSAGE:  user = findGroupUserbyInetAddr(source.getAddress());
                                             if(!(user != null && user.name.equals(userName) && user.ip.equals(hostAddress))){
-                                                messages.add(new StoredMessage(new String(data), user, true));
+                                                addMessage(new StoredMessage(new String(data), user, true));
                                             }
                                             break;
-                case SERVER_UNICAST_MESSAGE: messages.add(new StoredMessage(new String(data), findGroupUserbyInetAddr(source.getAddress()), false));
-                                         break;
-                case SERVER_MULTICAST_MESSAGE: messages.add(new StoredMessage(new String(data), findGroupUserbyInetAddr(source.getAddress()), true));
-                                         break;
+                case SERVER_UNICAST_MESSAGE: addMessage(new StoredMessage(new String(data), findGroupUserbyInetAddr(source.getAddress()), false));
+                                            break;
+                case SERVER_MULTICAST_MESSAGE: addMessage(new StoredMessage(new String(data), findGroupUserbyInetAddr(source.getAddress()), true));
+                                               break;
             }
         }catch(NumberFormatException | UnknownHostException | UDPLibException e){
             Logger.getLogger(ConfigLoader.class.getName()).log(Level.SEVERE, "Error when parsing datagram! ", e);
@@ -227,8 +219,11 @@ public class GroupClientRunnable  extends IGroupRunnable{
     }
 
     @Override
-    public GroupUser[] getGroupUsers() {
-        return (GroupUser[])groupUsers.toArray();
+    public List<GroupUser> getCurrentGroupUsers() {
+       LinkedList<GroupUser> groupUsersToReturn = new LinkedList<>();
+       Collections.copy(groupUsersToReturn, groupUsers);
+
+       return groupUsersToReturn;
     }
 
     /**

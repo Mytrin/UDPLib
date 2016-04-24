@@ -2,3 +2,4 @@ List of features to implement, after "cooldown":
 
 1.  Client should be able to detect, that he's been kicked, even when missing USER_DEAD datagram.
 2.  Consider identifying users by mac_address.
+3.  Direct client->client messages trough server

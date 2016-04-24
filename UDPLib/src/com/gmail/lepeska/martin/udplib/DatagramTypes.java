@@ -3,7 +3,7 @@ package com.gmail.lepeska.martin.udplib;
 /**
  * List of all used datagrams used by UDPLib to manage group network.
  * 
- * @author mytrin
+ * @author Martin Lepeška
  */
 public enum DatagramTypes {
     /**Sent by client to group, requesting all servers to report themselves*/

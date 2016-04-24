@@ -16,7 +16,7 @@ import java.util.List;
  * 
  * @author Martin Lepeška
  */
-public abstract class IGroupRunnable implements Runnable{
+public abstract class AGroupThread extends Thread{
    //NETWORK
    /**
    * Socket which sends and receives messages(full duplex). 
@@ -41,12 +41,13 @@ public abstract class IGroupRunnable implements Runnable{
    //DATA
    /**Received messages*/
    protected List<StoredMessage> messages= Collections.synchronizedList(new LinkedList<>());
+   /**Class responsible for encrypting and decrypting messages*/
    protected Encryptor encryptor;
    
-   //THREAD
-    /** Indicator, that thread is running*/
-   protected boolean running=true;  
-   
+   //USER
+   /**User defined listeners*/
+   protected List<IGroupListener> listeners = Collections.synchronizedList(new LinkedList<>());
+
    /**
     * @return Group IP
     */
@@ -67,25 +68,17 @@ public abstract class IGroupRunnable implements Runnable{
    public String getUserName() {
 	return userName;
    }
-
-   /**
-    * @return List of network members
-    */
-   public abstract GroupUser[] getGroupUsers();
    
    /**
     * Clears messages from thread cache.
     * @return Messages received from last time of pickMessages() call
     */
-   public StoredMessage[] pickMessages(){ 
-       StoredMessage[] store;
-       if(!messages.isEmpty()){
-           store=messages.toArray(new StoredMessage[messages.size()]);
-           messages.clear();
-       }else{
-           store=new StoredMessage[0];
-       }
-       return store;
+   public List<StoredMessage> pickMessages(){ 
+       LinkedList<StoredMessage> pickedMessages = new LinkedList<>();
+       Collections.copy(pickedMessages, messages);
+       messages.clear();
+       
+       return pickedMessages;
    }
    
    /**
@@ -96,9 +89,33 @@ public abstract class IGroupRunnable implements Runnable{
           socket.close();
           socket = null;
       }
-      running = false;
+      
+      listeners.stream().forEach((listener) -> {
+        listener.kicked();
+      });
    }
    
+   /**
+    * Adds given listener to current listeners
+    * @param listener User's class responsible for dealing with events
+    */
+   public void addListener(IGroupListener listener){
+       listeners.add(listener);
+   }
+   
+   /**
+    * Removes given listener from current listeners
+    * @param listener User's class responsible for dealing with events
+    */
+   public void removeListener(IGroupListener listener){
+       listeners.remove(listener);
+   }
+   
+  /**
+   * Ends communication(GroupServerThread destroys network)
+   */
+   public abstract void leave();
+
    /**
     * Deals with received datagram.
     * @param source DatagramPacket containing UDPLib datagram
@@ -106,12 +123,7 @@ public abstract class IGroupRunnable implements Runnable{
     * @param data  decrypted data of datagram
     */
    protected abstract void dealWithPacket(DatagramPacket source, DatagramTypes type, byte[] data);
-   
-  /**
-   * Ends communication(GroupServerThread destroys network)
-   */
-   public abstract void leave();
-   
+
    /**
     * Sends datagram with given data to specified GroupUser
     * @param target who should receive this datagram
@@ -151,6 +163,18 @@ public abstract class IGroupRunnable implements Runnable{
    }
    
    /**
+    * Adds new message to collection and notifies listener
+    * @param message 
+    */
+   protected void addMessage(StoredMessage message){
+       messages.add(message);
+       
+       listeners.stream().forEach((listener) -> {
+            listener.mesageReceived();
+        });
+   }
+   
+   /**
     * Encodes(id password is used) and sends given message to specified GroupUser
     * @param target User, who should receive this message
     * @param message String, which should user receive
@@ -162,6 +186,11 @@ public abstract class IGroupRunnable implements Runnable{
     * @param message String, which should everyone receive
     */
    public abstract void sendMulticastMessage(String message);
+   
+   /**
+    * @return latest info about group users
+    */
+   public abstract List<GroupUser> getCurrentGroupUsers();
    
    /**
     * 
@@ -180,5 +209,5 @@ public abstract class IGroupRunnable implements Runnable{
             }
         }
         return null;
-   }
+   }   
 }

@@ -18,7 +18,7 @@ public class ServerGroupInfoThread extends Thread{
     /**Time, which will server wait after sending request, before it announces user as dead (ms)*/
     private final AtomicInteger deadTime;
     /**Thread responsible for sending datagrams to group*/
-    private GroupServerRunnable groupServer;
+    private GroupServerThread groupServer;
     
     /**
      * 
@@ -46,7 +46,7 @@ public class ServerGroupInfoThread extends Thread{
                 Thread.sleep(deadTime.get());
                 groupServer.killDead();
             }catch(InterruptedException ex){
-                 Logger.getLogger(GroupServerRunnable.class.getName()).log(Level.WARNING, "Shutting down ServerGroupInfoThread...", ex);
+                 Logger.getLogger(GroupServerThread.class.getName()).log(Level.WARNING, "Shutting down ServerGroupInfoThread...", ex);
                  interrupt();
             }catch(Exception e){
                 throw new UDPLibException("ServerGroupInfoThread loop problem: ", e);
@@ -58,7 +58,7 @@ public class ServerGroupInfoThread extends Thread{
      * Has to be called before start!
      * @param groupServer Thread responsible for sending datagrams to group
      */
-    public void setGroupServer(GroupServerRunnable groupServer) {
+    public void setGroupServer(GroupServerThread groupServer) {
         this.groupServer = groupServer;
     }
     

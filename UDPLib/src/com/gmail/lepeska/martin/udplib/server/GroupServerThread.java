@@ -4,7 +4,7 @@ import com.gmail.lepeska.martin.udplib.ConfigLoader;
 import com.gmail.lepeska.martin.udplib.DatagramTypes;
 import com.gmail.lepeska.martin.udplib.Datagrams;
 import com.gmail.lepeska.martin.udplib.Encryptor;
-import com.gmail.lepeska.martin.udplib.IGroupRunnable;
+import com.gmail.lepeska.martin.udplib.AGroupThread;
 import com.gmail.lepeska.martin.udplib.StoredMessage;
 import com.gmail.lepeska.martin.udplib.UDPLibException;
 import com.gmail.lepeska.martin.udplib.client.GroupUser;
@@ -19,6 +19,8 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Enumeration;
 import java.util.Iterator;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.Objects;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -27,21 +29,14 @@ import java.util.logging.Logger;
  *
  * @author Martin Lepeška
  */
-public class GroupServerRunnable extends IGroupRunnable{
+public class GroupServerThread extends AGroupThread{
      /**Users in group*/
     private final ArrayList<ServerGroupUser> groupUsers= new ArrayList<>();
     /**This thread maintains info about group network*/
     private final ServerGroupInfoThread refreshThread;
-    
-    public static void main(String[] args) throws UnknownHostException{
-        if(ConfigLoader.loadConfig()){
-           new Thread(new GroupServerRunnable("Server")).start();
-           //new Thread(new GroupServerRunnable("Server", null, "25.146.244.201", 52511)).start();
-        }
-    }
-    
+
     /**
-     * Creates new GroupServerRunnable bound on interface of given hostAddress with given password and group address.
+     * Creates new GroupServerThread bound on interface of given hostAddress with given password and group address.
      * 
      * @param userName User's name in network
      * @param groupPassword Password required to access this group or null, if none
@@ -52,7 +47,7 @@ public class GroupServerRunnable extends IGroupRunnable{
      * @param deadTime Time, which will server wait after sending request, before it announces user as dead (ms)
      * @throws UnknownHostException 
      */
-    public GroupServerRunnable(String userName, String groupPassword, String hostAddress, String groupAddress, int port, int userInfoPeriod, int deadTime) throws UnknownHostException{
+    public GroupServerThread(String userName, String groupPassword, String hostAddress, String groupAddress, int port, int userInfoPeriod, int deadTime) throws UnknownHostException{
         Objects.requireNonNull(userName);
         this.groupUsers.add(new ServerGroupUser(userName, InetAddress.getByName(hostAddress)));
         this.userName = userName;
@@ -63,54 +58,6 @@ public class GroupServerRunnable extends IGroupRunnable{
         this.refreshThread = new ServerGroupInfoThread(userInfoPeriod, deadTime);
         this.refreshThread.setDaemon(true);
         this.encryptor = (groupPassword!=null)?new Encryptor(groupPassword):new Encryptor();
-    }
-    
-    /**
-     * Creates new GroupServerRunnable bound on interface of given hostAddress with given password and default group address loaded from configuration file.
-     * 
-     * @param userName User's name in network
-     * @param groupPassword Password required to access this group or null, if none
-     * @param hostAddress Address in network interface, which should server socket use
-     * @param groupAddress Address of used multi cast group
-     * @param port Port of server socket
-     * @throws UnknownHostException 
-     */
-    public GroupServerRunnable(String userName, String groupPassword, String hostAddress, String groupAddress, int port) throws UnknownHostException{
-        this(userName, groupPassword, hostAddress, groupAddress, port, ConfigLoader.getInt("user-info-period"), ConfigLoader.getInt("dead-time"));
-    }
-
-    /**
-     * Creates new GroupServerRunnable bound on interface of given hostAddress with given password and default group address loaded from configuration file.
-     * 
-     * @param userName User's name in network
-     * @param groupPassword Password required to access this group or null, if none
-     * @param hostAddress Address in network interface, which should server socket use
-     * @param port Port of server socket
-     * @throws UnknownHostException 
-     */
-    public GroupServerRunnable(String userName, String groupPassword, String hostAddress, int port) throws UnknownHostException{
-        this(userName, groupPassword, hostAddress, ConfigLoader.getString("default-group"), port);
-    }
-
-    /**
-     * Creates new GroupServerRunnable with given password and default values loaded from configuration file.
-     * 
-     * @param userName User's name in network
-     * @param groupPassword Password required to access this group or null, if none
-     * @throws UnknownHostException 
-     */
-    public GroupServerRunnable(String userName, String groupPassword) throws UnknownHostException{
-        this(userName, groupPassword, ConfigLoader.getString("default-server-ip"), ConfigLoader.getString("default-group"), ConfigLoader.getInt("default-port"));
-    }
-    
-    /**
-     * Creates new GroupServerRunnable with no required password and default values loaded from configuration file.
-     * 
-     * @param userName User's name in network
-     * @throws UnknownHostException 
-     */
-    public GroupServerRunnable(String userName) throws UnknownHostException{
-        this(userName, null, ConfigLoader.getString("default-server-ip"), ConfigLoader.getString("default-group"), ConfigLoader.getInt("default-port"));
     }
     
     /**
@@ -156,6 +103,9 @@ public class GroupServerRunnable extends IGroupRunnable{
             refreshThread.setGroupServer(this);
             refreshThread.start();
             
+            listeners.stream().forEach((listener) -> {
+                listener.joined();
+            });
         }catch(Exception e){
            finishThread();
            Logger.getLogger(ConfigLoader.class.getName()).log(Level.SEVERE, "Thread shut down! ", e);
@@ -185,9 +135,7 @@ public class GroupServerRunnable extends IGroupRunnable{
                 }else{
                     decryptedBuf = encryptor.decrypt(buf);
                     type = Datagrams.getDatagramType(decryptedBuf);
-                    
-                    System.out.println("-> "+new String(decryptedBuf).trim()+" type: "+type.name());
-                    
+
                     if(type != DatagramTypes.TRASH){
                         dealWithPacket(packet, type, Datagrams.unpack(decryptedBuf));
                     }else{
@@ -219,8 +167,11 @@ public class GroupServerRunnable extends IGroupRunnable{
     }
 
     @Override
-    public GroupUser[] getGroupUsers() {
-        return (GroupUser[])groupUsers.toArray();
+    public List<GroupUser> getCurrentGroupUsers() {
+       LinkedList<GroupUser> groupUsersToReturn = new LinkedList<>();
+       Collections.copy(groupUsersToReturn, groupUsers);
+
+       return groupUsersToReturn;
     }
     
     /**
@@ -256,6 +207,10 @@ public class GroupServerRunnable extends IGroupRunnable{
                 byte[] data = Datagrams.createUserDeadDatagram(encryptor, user);
                 sendMulticastDatagram(data);
                 
+                listeners.stream().forEach((listener) -> {
+                   listener.userKicked(user);
+                });
+                
                 userIt.remove();
             }
         }
@@ -266,16 +221,10 @@ public class GroupServerRunnable extends IGroupRunnable{
      * Announces current group state to all group users.
      */
     void sendInfo(){
-        System.out.println("CURRENT USER LIST:");
-        
-        groupUsers.stream().forEach((user) -> {
-            System.out.println(user);
-            
+        groupUsers.stream().forEach((user) -> {            
             byte[] data = Datagrams.createUserInfoDatagram(encryptor, user);
             sendMulticastDatagram(data);
         });
-        
-        System.out.println("-------------------");
     }
 
     @Override
@@ -297,8 +246,12 @@ public class GroupServerRunnable extends IGroupRunnable{
         
         switch(type){
             case CLIENT_ACCESS_REQUEST:if(messageSplit.length >= 2 && (messageSplit[0].equals(groupPassword) || groupPassword==null)){
-                                            groupUsers.add(new ServerGroupUser(messageSplit[1], source.getAddress()));
+                                            ServerGroupUser newUser = new ServerGroupUser(messageSplit[1], source.getAddress());
+                                            groupUsers.add(newUser);
                                             sendDatagram(source.getAddress(), Datagrams.createServerClientAccessResponse(encryptor, groupAddress, source.getAddress(), true));
+                                            listeners.stream().forEach((listener) -> {
+                                                listener.userJoined(newUser);
+                                            });
                                         }else{
                                             sendDatagram(source.getAddress(), Datagrams.createServerClientAccessResponse(encryptor, hostAddress, source.getAddress(), false));
                                         }
@@ -307,10 +260,10 @@ public class GroupServerRunnable extends IGroupRunnable{
                                             if(user != null) user.pingReceived();
                                             break;
             case CLIENT_UNICAST_MESSAGE:    user = findGroupUserbyInetAddr(source.getAddress());
-                                            messages.add(new StoredMessage(new String(data), user, false));
+                                            addMessage(new StoredMessage(new String(data), user, false));
                                             break;
             case CLIENT_MULTICAST_MESSAGE:  user = findGroupUserbyInetAddr(source.getAddress());
-                                            messages.add(new StoredMessage(new String(data), user, true));
+                                            addMessage(new StoredMessage(new String(data), user, true));
                                             break;
         }
     }

@@ -1,7 +1,7 @@
 package com.gmail.lepeska.martin.udplib;
 
 import com.gmail.lepeska.martin.udplib.client.GroupUser;
-import com.gmail.lepeska.martin.udplib.server.GroupServerRunnable;
+import com.gmail.lepeska.martin.udplib.server.GroupServerThread;
 import java.net.InetAddress;
 import java.util.Arrays;
 
@@ -63,10 +63,10 @@ public class Datagrams {
      * @param isMulticast true if message is to be sent to all group users
      * @return data of UDPLib message datagram
      */
-    public static byte[] createMessageDatagram(Encryptor encryptor, String message, boolean isMulticast, IGroupRunnable thread){
+    public static byte[] createMessageDatagram(Encryptor encryptor, String message, boolean isMulticast, AGroupThread thread){
         DatagramTypes type;
         
-        if(thread instanceof GroupServerRunnable){
+        if(thread instanceof GroupServerThread){
             type = isMulticast?DatagramTypes.SERVER_MULTICAST_MESSAGE:DatagramTypes.SERVER_UNICAST_MESSAGE;
         }else{
             type = isMulticast?DatagramTypes.CLIENT_MULTICAST_MESSAGE:DatagramTypes.CLIENT_UNICAST_MESSAGE;
