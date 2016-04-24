@@ -25,18 +25,20 @@ public class ServerGroupUser extends GroupUser{
         super(name, ip);
     }
     /**
+     * Used by GroupServerRunnable
      * Updates pingToHost value
      */
-    public synchronized void pingReceived(){
+    synchronized void pingReceived(){
         pingToHost = System.currentTimeMillis() - lastPingTime;
          waitingForResponse = false;
          couldBeDead = false;
     }
     
     /**
+     * Used by GroupServerRunnable
      * Notifies about sending ping request(creates timestamp)
      */
-    public synchronized void pingSent(){
+    synchronized void pingSent(){
         lastPingTime = System.currentTimeMillis();
         if(!waitingForResponse){
             waitingForResponse = true;
@@ -46,12 +48,25 @@ public class ServerGroupUser extends GroupUser{
         
     }
 
+    /**
+     * Used by GroupServerRunnable
+     * @return true, if user had not responded to last IS_ALIVE_REQUEST YET
+     */
     public synchronized boolean waitingForResponse() {
         return waitingForResponse;
     }
     
+    /**
+     * Used by GroupServerRunnable
+     * @return true, if user had not responded to previous IS_ALIVE_REQUEST
+     */
     public synchronized boolean couldBeDead() {
         return couldBeDead;
     }
 
+    @Override
+    public String toString() {
+        return name+":"+ip.getHostName()+"     "+pingToHost+"ms"+"  W:"+waitingForResponse;
+    }
+    
 }

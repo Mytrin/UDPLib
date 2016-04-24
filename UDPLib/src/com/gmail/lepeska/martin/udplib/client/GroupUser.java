@@ -42,4 +42,9 @@ public class GroupUser {
         this.pingToHost = pingToHost;
     }
 
+    @Override
+    public String toString() {
+        return name+":"+ip.getHostName()+"     "+pingToHost+"ms";
+    }
+
 }

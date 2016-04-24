@@ -12,6 +12,7 @@ import java.net.DatagramPacket;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.MulticastSocket;
+import java.net.NetworkInterface;
 import java.net.SocketTimeoutException;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
@@ -42,17 +43,14 @@ public class GroupClientRunnable  extends IGroupRunnable{
      * 
      * @param userName User's name in network
      * @param groupPassword Password required to access this group or null, if none
-     * @param clientAddress Address in network interface, which should server socket use
      * @param serverAddress Address of group owner
      * @param port Port of server socket
      * @throws UnknownHostException 
      */
-    public GroupClientRunnable(String userName, String groupPassword, String clientAddress, String serverAddress, int port) throws UnknownHostException{
+    public GroupClientRunnable(String userName, String groupPassword, String serverAddress, int port) throws UnknownHostException{
         Objects.requireNonNull(userName);
-        this.groupUsers.add(new GroupUser(userName, InetAddress.getByName(clientAddress)));
         this.userName = userName;
         this.groupPassword = groupPassword;
-        this.hostAddress = InetAddress.getByName(clientAddress);
         this.serverAddress = InetAddress.getByName(serverAddress);
         this.port = port;
         this.encryptor = (groupPassword!=null)?new Encryptor(groupPassword):new Encryptor();
@@ -67,40 +65,49 @@ public class GroupClientRunnable  extends IGroupRunnable{
      * @throws UnknownHostException 
      */
     public GroupClientRunnable(String userName, String groupPassword, String serverAddress) throws UnknownHostException{
-        this(userName, groupPassword, ConfigLoader.getString("default-server-ip"), serverAddress, ConfigLoader.getInt("default-port"));
+        this(userName, groupPassword, serverAddress, ConfigLoader.getInt("default-port"));
     }
     
     /**
-     * Creates important components, which could not been created in constructor, before starting loop.
+     * Creates important components, which cannot be created in constructor, before starting loop.
      */
     private void init(){
         try{
-            groupUsers.add(new GroupUser(userName, hostAddress));
-            
-            socket = new MulticastSocket(new InetSocketAddress(hostAddress, port));
+            socket = new MulticastSocket(port);
+            sendSockets.add(socket);
             
             byte[] data = Datagrams.createClientAccessRequest(encryptor, userName, groupPassword);
             sendDatagram(serverAddress, data);
 
             byte[] responseData = new byte[Datagrams.MAXIMUM_DATA_LENGTH];
-            DatagramPacket response = new DatagramPacket(responseData, port);
+            DatagramPacket response = new DatagramPacket(responseData, responseData.length);
             
+            socket.setSoTimeout(ConfigLoader.getInt("dead-time"));
             socket.receive(response);
             
             byte[] decryptedReponse = encryptor.decrypt(responseData);
             String responseStr = new String(Datagrams.unpack(decryptedReponse)).trim();
             
+            System.out.println(responseStr);
             
             if(Datagrams.getDatagramType(responseData) == DatagramTypes.SERVER_ACCEPT_CLIENT_RESPONSE){
                 String[] responseSplit = responseStr.split(Datagrams.DELIMITER);
                 
-                if(responseSplit.length < 2){
+                if(responseSplit.length < 3){
                     throw new UDPLibException("Received response with uncomplete data!"+responseStr);
                 }
                 
                 if(responseSplit[1].equals("1")){
                     groupAddress = InetAddress.getByName(responseSplit[0]);
-                    socket.joinGroup(groupAddress);
+                    //no other way to know from which interface was server contacted
+                    hostAddress = InetAddress.getByName(responseSplit[2]); 
+                    
+                    NetworkInterface nic = NetworkInterface.getByInetAddress(hostAddress);
+                    socket.joinGroup(new InetSocketAddress(responseSplit[0], port), nic);
+                    
+                    socket.setSoTimeout(0);
+                    
+                    this.groupUsers.add(new GroupUser(userName, hostAddress));
                 }else{
                     throw new UDPLibException("Wrong password!");
                 }
@@ -154,12 +161,14 @@ public class GroupClientRunnable  extends IGroupRunnable{
 
     @Override
     protected void dealWithPacket(DatagramPacket source, DatagramTypes type, byte[] data) {
-        String[] messageSplit = new String(data).split(Datagrams.DELIMITER);
+        System.out.println(new String(data));
+        
+        String[] messageSplit = new String(data).trim().split(Datagrams.DELIMITER);
         GroupUser user;
 
         try{
             switch(type){
-                case SERVER_CLIENTS_INFO: user = findGroupUserbyName(messageSplit[0]);
+                case SERVER_CLIENTS_INFO: user = findGroupUserbyInetAddr(InetAddress.getByName((messageSplit[1])));
                                       if(user != null){
                                           user.setPingToHost(Long.parseLong(messageSplit[2]));
                                       }else{
@@ -168,7 +177,7 @@ public class GroupClientRunnable  extends IGroupRunnable{
                                           groupUsers.add(user);
                                       }
                                       break;
-                case SERVER_CLIENT_DEAD:  user = findGroupUserbyName(messageSplit[0]);
+                case SERVER_CLIENT_DEAD:  user = findGroupUserbyInetAddr(InetAddress.getByName(messageSplit[1]));
                                       if(user != null){
                                           groupUsers.remove(user);
                                           
@@ -181,14 +190,18 @@ public class GroupClientRunnable  extends IGroupRunnable{
                 case SERVER_IS_ALIVE_REQUEST: sendDatagram(serverAddress, Datagrams.createIsAliveResponseDatagram(encryptor));
                                           break;
                 case CLIENT_UNICAST_MESSAGE:    user = findGroupUserbyInetAddr(source.getAddress());
-                                            messages.add(new StoredMessage(new String(data), user, false));
+                                            if(!(user != null && user.name.equals(userName) && user.ip.equals(hostAddress))){ //discard own messages
+                                                messages.add(new StoredMessage(new String(data), user, false));
+                                            }   
                                             break;
                 case CLIENT_MULTICAST_MESSAGE:  user = findGroupUserbyInetAddr(source.getAddress());
-                                            messages.add(new StoredMessage(new String(data), user, true));
+                                            if(!(user != null && user.name.equals(userName) && user.ip.equals(hostAddress))){
+                                                messages.add(new StoredMessage(new String(data), user, true));
+                                            }
                                             break;
-                case SERVER_UNICAST_MESSAGE: messages.add(new StoredMessage(new String(data), findGroupUserbyName(userName), false));
+                case SERVER_UNICAST_MESSAGE: messages.add(new StoredMessage(new String(data), findGroupUserbyInetAddr(source.getAddress()), false));
                                          break;
-                case SERVER_MULTICAST_MESSAGE: messages.add(new StoredMessage(new String(data), findGroupUserbyName(userName), true));
+                case SERVER_MULTICAST_MESSAGE: messages.add(new StoredMessage(new String(data), findGroupUserbyInetAddr(source.getAddress()), true));
                                          break;
             }
         }catch(NumberFormatException | UnknownHostException | UDPLibException e){
@@ -218,18 +231,13 @@ public class GroupClientRunnable  extends IGroupRunnable{
         return (GroupUser[])groupUsers.toArray();
     }
 
+    /**
+     * @param ip ip of user
+     * @return user with given ip or null
+     */
     private GroupUser findGroupUserbyInetAddr(InetAddress ip){
         for(GroupUser user: groupUsers){
             if(user.ip.equals(ip)){
-                return user;
-            }
-        }
-        return null;
-    }
-    
-    private GroupUser findGroupUserbyName(String userName){
-        for(GroupUser user: groupUsers){
-            if(user.name.equals(userName)){
                 return user;
             }
         }

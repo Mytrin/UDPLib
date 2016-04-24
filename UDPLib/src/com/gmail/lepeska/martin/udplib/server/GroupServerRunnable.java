@@ -9,11 +9,15 @@ import com.gmail.lepeska.martin.udplib.StoredMessage;
 import com.gmail.lepeska.martin.udplib.UDPLibException;
 import com.gmail.lepeska.martin.udplib.client.GroupUser;
 import java.net.DatagramPacket;
+import java.net.Inet6Address;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.MulticastSocket;
+import java.net.NetworkInterface;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Enumeration;
 import java.util.Iterator;
 import java.util.Objects;
 import java.util.logging.Level;
@@ -31,8 +35,8 @@ public class GroupServerRunnable extends IGroupRunnable{
     
     public static void main(String[] args) throws UnknownHostException{
         if(ConfigLoader.loadConfig()){
-            new Thread(new GroupServerRunnable("Server")).start();
-           //  new Thread(new GroupServerRunnable("Server", null, "127.0.0.1", 8080)).start();
+           new Thread(new GroupServerRunnable("Server")).start();
+           //new Thread(new GroupServerRunnable("Server", null, "25.146.244.201", 52511)).start();
         }
     }
     
@@ -110,13 +114,45 @@ public class GroupServerRunnable extends IGroupRunnable{
     }
     
     /**
-     * Creates important components, which could not been created in constructor, before starting loop.
+     * Creates important components, which cannot be created in constructor, before starting loop.
      */
     private void init(){
         try{
+            //socket = new MulticastSocket(new InetSocketAddress(hostAddress, port));
             socket = new MulticastSocket(new InetSocketAddress(hostAddress, port));
-            socket.joinGroup(groupAddress);
             
+            InetSocketAddress groupSocketAddr = new InetSocketAddress(groupAddress, port);
+            
+            if(hostAddress.getHostAddress().equals("0.0.0.0")){
+                Logger.getLogger(ConfigLoader.class.getName()).log(Level.INFO, "Selected 0.0.0.0 -> detecting interfaces...");
+                socket.joinGroup(groupAddress);
+                
+                //be able to multicast on all posible interfaces
+                //still lesser evil than switching interfaces on one socket
+                Enumeration<NetworkInterface> nets = NetworkInterface.getNetworkInterfaces();
+                for (NetworkInterface nic : Collections.list(nets)){
+                    if(!nic.isLoopback() && nic.supportsMulticast() && nic.isUp()){
+                        Enumeration<InetAddress> addresses = nic.getInetAddresses();
+                        
+                        while(addresses.hasMoreElements()){
+                            InetAddress address = addresses.nextElement();
+                            if(!address.getHostName().equals("0.0.0.0") && !address.isLinkLocalAddress() && !address.isLoopbackAddress() && !(address instanceof Inet6Address)){
+                                MulticastSocket sendSocket = new MulticastSocket();
+                                sendSocket.setNetworkInterface(nic);
+                                sendSockets.add(sendSocket);
+                                Logger.getLogger(ConfigLoader.class.getName()).log(Level.INFO, "Bound on: {0} nic: {1}", new Object[]{address, nic});
+                            }
+                        }
+                    }
+                }
+                
+            }else{
+                NetworkInterface nic = getInterfaceByIP(hostAddress.getHostAddress());
+                socket.joinGroup(groupSocketAddr, nic);
+                Logger.getLogger(ConfigLoader.class.getName()).log(Level.INFO, "Bound on: {0} nic: {1}", new Object[]{hostAddress, nic});
+                sendSockets.add(socket);
+            }
+             
             refreshThread.setGroupServer(this);
             refreshThread.start();
             
@@ -230,10 +266,16 @@ public class GroupServerRunnable extends IGroupRunnable{
      * Announces current group state to all group users.
      */
     void sendInfo(){
+        System.out.println("CURRENT USER LIST:");
+        
         groupUsers.stream().forEach((user) -> {
+            System.out.println(user);
+            
             byte[] data = Datagrams.createUserInfoDatagram(encryptor, user);
             sendMulticastDatagram(data);
         });
+        
+        System.out.println("-------------------");
     }
 
     @Override
@@ -254,11 +296,11 @@ public class GroupServerRunnable extends IGroupRunnable{
         ServerGroupUser user;
         
         switch(type){
-            case CLIENT_ACCESS_REQUEST:if(messageSplit.length >= 2 && messageSplit[0].equals(groupPassword)){
+            case CLIENT_ACCESS_REQUEST:if(messageSplit.length >= 2 && (messageSplit[0].equals(groupPassword) || groupPassword==null)){
                                             groupUsers.add(new ServerGroupUser(messageSplit[1], source.getAddress()));
-                                            sendDatagram(source.getAddress(), Datagrams.createServerAcceptClientResponse(encryptor, groupAddress, true));
+                                            sendDatagram(source.getAddress(), Datagrams.createServerClientAccessResponse(encryptor, groupAddress, source.getAddress(), true));
                                         }else{
-                                            sendDatagram(source.getAddress(), Datagrams.createServerAcceptClientResponse(encryptor, hostAddress, false));
+                                            sendDatagram(source.getAddress(), Datagrams.createServerClientAccessResponse(encryptor, hostAddress, source.getAddress(), false));
                                         }
                                         break;
             case CLIENT_IS_ALIVE_RESPONSE: user = findGroupUserbyInetAddr(source.getAddress());
@@ -270,13 +312,13 @@ public class GroupServerRunnable extends IGroupRunnable{
             case CLIENT_MULTICAST_MESSAGE:  user = findGroupUserbyInetAddr(source.getAddress());
                                             messages.add(new StoredMessage(new String(data), user, true));
                                             break;
-            case SERVER_UNICAST_MESSAGE: messages.add(new StoredMessage(new String(data), findGroupUserbyName(userName), false));
-                                         break;
-            case SERVER_MULTICAST_MESSAGE: messages.add(new StoredMessage(new String(data), findGroupUserbyName(userName), true));
-                                         break;
         }
     }
     
+    /**
+     * @param ip ip of user
+     * @return user with given ip or null
+     */
     private ServerGroupUser findGroupUserbyInetAddr(InetAddress ip){
         for(ServerGroupUser user: groupUsers){
             if(user.ip.equals(ip)){
@@ -285,14 +327,4 @@ public class GroupServerRunnable extends IGroupRunnable{
         }
         return null;
     }
-    
-    private ServerGroupUser findGroupUserbyName(String userName){
-        for(ServerGroupUser user: groupUsers){
-            if(user.name.equals(userName)){
-                return user;
-            }
-        }
-        return null;
-    }
-    
 }

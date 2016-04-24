@@ -21,7 +21,7 @@ public class Datagrams {
     /**Start sequence of bytes, which identifies, that datagram is sent by UDPLib*/
     public static final byte[] DATAGRAM_HEADER = ("UDPL").getBytes();
     /**Special character, which marks certain parts of message*/
-    public static final String DELIMITER = "|";
+    public static final String DELIMITER = "#";
     
     private Datagrams() {}
     
@@ -98,7 +98,7 @@ public class Datagrams {
      * @return data of UDPLib CLIENT_IS_ALIVE_RESPONSE datagram
      */
     public static byte[] createUserInfoDatagram(Encryptor encryptor, GroupUser user){
-        String message = user.name+DELIMITER+user.ip+DELIMITER+user.getPingToHost();
+        String message = user.name+DELIMITER+user.ip.getHostAddress()+DELIMITER+user.getPingToHost();
 
         return createDatagram(encryptor, message, DatagramTypes.SERVER_CLIENTS_INFO);
     }
@@ -110,7 +110,7 @@ public class Datagrams {
      * @return data of UDPLib SERVER_CLIENT_DEAD datagram
      */
     public static byte[] createUserDeadDatagram(Encryptor encryptor, GroupUser user){
-        String message = user.name+DELIMITER+user.ip;
+        String message = user.name+DELIMITER+user.ip.getHostAddress();
 
         return createDatagram(encryptor, message, DatagramTypes.SERVER_CLIENT_DEAD);
     }
@@ -159,11 +159,12 @@ public class Datagrams {
      * HEAD(N B)TYPE(1B)GROUP|USE_PASSWORD
      * @param encryptor Encryptor of sending thread
      * @param groupAddress Group address of sending thread
+     * @param clientAddress IP of client to let him know which interface he should use
      * @param accept true if recipient is accepted to group
      * @return data of UDPLib SERVER_ACCEPT_CLIENT_RESPONSE datagram
      */
-    public static byte[] createServerAcceptClientResponse(Encryptor encryptor, InetAddress groupAddress,boolean accept){
-        String message = groupAddress.toString()+DELIMITER+(accept?1:0);
+    public static byte[] createServerClientAccessResponse(Encryptor encryptor, InetAddress groupAddress, InetAddress clientAddress, boolean accept){
+        String message = groupAddress.getHostAddress()+DELIMITER+(accept?1:0)+DELIMITER+clientAddress.getHostAddress();
         
         return createDatagram(encryptor, message, DatagramTypes.SERVER_ACCEPT_CLIENT_RESPONSE);
     }

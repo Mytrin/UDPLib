@@ -4,7 +4,10 @@ import com.gmail.lepeska.martin.udplib.client.GroupUser;
 import java.net.DatagramPacket;
 import java.net.InetAddress;
 import java.net.MulticastSocket;
+import java.net.NetworkInterface;
+import java.net.SocketException;
 import java.util.Collections;
+import java.util.Enumeration;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -25,6 +28,9 @@ public abstract class IGroupRunnable implements Runnable{
    protected InetAddress hostAddress;
    /**Used port*/
    protected int port;
+   
+   /**This is UGLY, but necessary - multicast does not mean multi interface*/
+   protected LinkedList<MulticastSocket> sendSockets = new LinkedList<>();
    
    //AUTHENTICATION
    /**User's name in network*/
@@ -135,8 +141,10 @@ public abstract class IGroupRunnable implements Runnable{
     */
    public synchronized void sendMulticastDatagram(byte[] data){
        try{
-           DatagramPacket packet = new DatagramPacket(data, data.length, groupAddress, port); 
-           socket.send(packet);
+          DatagramPacket packet = new DatagramPacket(data, data.length, groupAddress, port); 
+          for(MulticastSocket sendSocket: sendSockets){
+            sendSocket.send(packet);
+          }
        }catch(Exception e){
            throw new UDPLibException("Unable to send datagram: ", e);
        }
@@ -154,4 +162,23 @@ public abstract class IGroupRunnable implements Runnable{
     * @param message String, which should everyone receive
     */
    public abstract void sendMulticastMessage(String message);
+   
+   /**
+    * 
+    * @param ip ip of the interface
+     * @return NetworkInterface with given ip or null, if no interface found
+     * @throws java.net.SocketException 
+    */
+   public NetworkInterface getInterfaceByIP(String ip) throws SocketException{
+       Enumeration<NetworkInterface> nets = NetworkInterface.getNetworkInterfaces();
+        for (NetworkInterface netint : Collections.list(nets)){
+            Enumeration<InetAddress> addresses = netint.getInetAddresses();
+            for(InetAddress addr : Collections.list(addresses)){
+                if(addr.getHostAddress().equals(ip)){
+                    return netint;
+                }
+            }
+        }
+        return null;
+   }
 }
