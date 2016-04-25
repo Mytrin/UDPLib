@@ -58,6 +58,7 @@ public class GroupServerThread extends AGroupThread{
         this.refreshThread = new ServerGroupInfoThread(userInfoPeriod, deadTime);
         this.refreshThread.setDaemon(true);
         this.encryptor = (groupPassword!=null)?new Encryptor(groupPassword):new Encryptor();
+        setDaemon(true);
     }
     
     /**
@@ -121,26 +122,24 @@ public class GroupServerThread extends AGroupThread{
         while(!Thread.currentThread().isInterrupted() && socket != null){
             try{
                 byte[] buf = new byte[Datagrams.MAXIMUM_DATA_LENGTH];
-                byte[] decryptedBuf;
-                
                 
                 // receive request
                 DatagramPacket packet = new DatagramPacket(buf, buf.length);
                 socket.receive(packet);
                 
-                DatagramTypes type = Datagrams.getDatagramType(buf);
+                boolean isExploreDatagram = Datagrams.isExploreDatagram(Datagrams.bytesToString(buf));
 
-                if(type == DatagramTypes.CLIENT_EXPLORE_REQUEST){
+                if(isExploreDatagram){
                     sendDatagram(packet.getAddress(), Datagrams.createExploreResponse(groupPassword != null));
                 }else{
-                    decryptedBuf = encryptor.decrypt(buf);
-                    type = Datagrams.getDatagramType(decryptedBuf);
+                    String data = Datagrams.unpack(buf, encryptor, packet);
+                    DatagramTypes type = Datagrams.getDatagramType(data);
 
                     if(type != DatagramTypes.TRASH){
-                        dealWithPacket(packet, type, Datagrams.unpack(decryptedBuf));
+                        dealWithPacket(packet, type, Datagrams.unpack2(data));
                     }else{
                         //trash    
-                        Logger.getLogger(ConfigLoader.class.getName()).log(Level.WARNING, "Trash received: {0} -> {1} ", new String[]{new String(buf), new String(decryptedBuf)});
+                        Logger.getLogger(ConfigLoader.class.getName()).log(Level.WARNING, "Trash received: {0} -> {1} ", new String[]{Datagrams.bytesToString(buf), data});
                     }
                 }
                 
@@ -240,8 +239,8 @@ public class GroupServerThread extends AGroupThread{
     }
 
     @Override
-    protected void dealWithPacket(DatagramPacket source, DatagramTypes type, byte[] data) {
-        String[] messageSplit = new String(data).trim().split(Datagrams.DELIMITER);
+    protected void dealWithPacket(DatagramPacket source, DatagramTypes type, String data) {
+        String[] messageSplit = data.split(Datagrams.DELIMITER);
         ServerGroupUser user;
         
         switch(type){
@@ -260,10 +259,10 @@ public class GroupServerThread extends AGroupThread{
                                             if(user != null) user.pingReceived();
                                             break;
             case CLIENT_UNICAST_MESSAGE:    user = findGroupUserbyInetAddr(source.getAddress());
-                                            addMessage(new StoredMessage(new String(data), user, false));
+                                            addMessage(new StoredMessage(data, user, false));
                                             break;
             case CLIENT_MULTICAST_MESSAGE:  user = findGroupUserbyInetAddr(source.getAddress());
-                                            addMessage(new StoredMessage(new String(data), user, true));
+                                            addMessage(new StoredMessage(data, user, true));
                                             break;
         }
     }

@@ -51,6 +51,7 @@ public class GroupClientThread  extends AGroupThread{
         this.serverAddress = InetAddress.getByName(serverAddress);
         this.port = port;
         this.encryptor = (groupPassword!=null)?new Encryptor(groupPassword):new Encryptor();
+        setDaemon(true);
     }
     
     /**
@@ -70,10 +71,10 @@ public class GroupClientThread  extends AGroupThread{
             socket.setSoTimeout(ConfigLoader.getInt("dead-time"));
             socket.receive(response);
             
-            byte[] decryptedReponse = encryptor.decrypt(responseData);
-            String responseStr = new String(Datagrams.unpack(decryptedReponse)).trim();
-
-            if(Datagrams.getDatagramType(responseData) == DatagramTypes.SERVER_ACCEPT_CLIENT_RESPONSE){
+            String decryptedReponse = Datagrams.unpack(responseData, encryptor, response);
+            String responseStr = Datagrams.unpack2(decryptedReponse);
+            
+            if(Datagrams.getDatagramType(decryptedReponse) == DatagramTypes.SERVER_ACCEPT_CLIENT_RESPONSE){
                 String[] responseSplit = responseStr.split(Datagrams.DELIMITER);
                 
                 if(responseSplit.length < 3){
@@ -88,7 +89,7 @@ public class GroupClientThread  extends AGroupThread{
                     NetworkInterface nic = NetworkInterface.getByInetAddress(hostAddress);
                     socket.joinGroup(new InetSocketAddress(responseSplit[0], port), nic);
                     
-                    socket.setSoTimeout(0);
+                    socket.setSoTimeout(ConfigLoader.getInt("user-info-period")*2);
                     
                     this.groupUsers.add(new GroupUser(userName, hostAddress));
                     
@@ -121,19 +122,18 @@ public class GroupClientThread  extends AGroupThread{
         while(!Thread.currentThread().isInterrupted() && socket != null){
             try{
                 byte[] buf = new byte[Datagrams.MAXIMUM_DATA_LENGTH];
-                byte[] decryptedBuf;
 
                 DatagramPacket packet = new DatagramPacket(buf, buf.length);
                 socket.receive(packet);
 
-                decryptedBuf = encryptor.decrypt(buf);
-                DatagramTypes type = Datagrams.getDatagramType(decryptedBuf);
-
+                String data = Datagrams.unpack(buf, encryptor, packet);
+                DatagramTypes type = Datagrams.getDatagramType(data);
+                
                 if(type != DatagramTypes.TRASH){
-                    dealWithPacket(packet, type, Datagrams.unpack(decryptedBuf));
+                    dealWithPacket(packet, type, Datagrams.unpack2(data));
                 }else{
                     //trash    
-                    Logger.getLogger(ConfigLoader.class.getName()).log(Level.WARNING, "Trash received: {0} -> {1} ", new String[]{new String(buf), new String(decryptedBuf)});
+                    Logger.getLogger(ConfigLoader.class.getName()).log(Level.WARNING, "Trash received: {0} -> {1} ", new String[]{Datagrams.bytesToString(buf), data});
                 }
 
             }catch(Exception e){
@@ -145,10 +145,8 @@ public class GroupClientThread  extends AGroupThread{
     }
 
     @Override
-    protected void dealWithPacket(DatagramPacket source, DatagramTypes type, byte[] data) {
-        System.out.println(new String(data));
-        
-        String[] messageSplit = new String(data).trim().split(Datagrams.DELIMITER);
+    protected void dealWithPacket(DatagramPacket source, DatagramTypes type, String data) {       
+        String[] messageSplit = data.split(Datagrams.DELIMITER);
         GroupUser user;
 
         try{
@@ -183,17 +181,17 @@ public class GroupClientThread  extends AGroupThread{
                                           break;
                 case CLIENT_UNICAST_MESSAGE:    user = findGroupUserbyInetAddr(source.getAddress());
                                             if(!(user != null && user.name.equals(userName) && user.ip.equals(hostAddress))){ //discard own messages
-                                                addMessage(new StoredMessage(new String(data), user, false));
+                                                addMessage(new StoredMessage(data, user, false));
                                             }
                                             break;
                 case CLIENT_MULTICAST_MESSAGE:  user = findGroupUserbyInetAddr(source.getAddress());
                                             if(!(user != null && user.name.equals(userName) && user.ip.equals(hostAddress))){
-                                                addMessage(new StoredMessage(new String(data), user, true));
+                                                addMessage(new StoredMessage(data, user, true));
                                             }
                                             break;
-                case SERVER_UNICAST_MESSAGE: addMessage(new StoredMessage(new String(data), findGroupUserbyInetAddr(source.getAddress()), false));
+                case SERVER_UNICAST_MESSAGE: addMessage(new StoredMessage(data, findGroupUserbyInetAddr(source.getAddress()), false));
                                             break;
-                case SERVER_MULTICAST_MESSAGE: addMessage(new StoredMessage(new String(data), findGroupUserbyInetAddr(source.getAddress()), true));
+                case SERVER_MULTICAST_MESSAGE: addMessage(new StoredMessage(data, findGroupUserbyInetAddr(source.getAddress()), true));
                                                break;
             }
         }catch(NumberFormatException | UnknownHostException | UDPLibException e){

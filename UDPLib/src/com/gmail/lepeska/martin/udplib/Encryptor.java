@@ -1,8 +1,10 @@
 package com.gmail.lepeska.martin.udplib;
 
+import java.io.UnsupportedEncodingException;
 import java.security.InvalidKeyException;
 import java.security.Key;
 import java.security.NoSuchAlgorithmException;
+import java.util.Arrays;
 import javax.crypto.BadPaddingException;
 import javax.crypto.Cipher;
 import javax.crypto.IllegalBlockSizeException;
@@ -20,32 +22,34 @@ public class Encryptor {
     private Cipher cipher;
     /**Key containing password, needs to be 16 characters long(128bit)*/
     private final Key aesKey;
-
+    
     /**
      * Dummy encryptor, which returns given bytes as encoded
      */
     public Encryptor() {
         this.aesKey = null;
     }
-
+    
     /**
      * @param password password, needs to be 16 characters long(128bit)
      */
     public Encryptor(String password) {
-        
-        if(password.length() < 16){
-            for(int i = 0; i < 16-password.length(); i++){
-                password += ".";
-            }
-        }else if(password.length() > 16){
-            password = password.substring(0, 15);
-        }
-
-        aesKey = new SecretKeySpec(password.getBytes(), "AES");
-	
         try{
-            cipher = Cipher.getInstance("AES");
-        }catch(NoSuchAlgorithmException | NoSuchPaddingException e){
+            byte[] passwordBytes = password.getBytes("UTF-8");
+            byte[] validatedPassword = new byte[16];
+        
+            if(passwordBytes.length > 16){
+                System.arraycopy(passwordBytes, 0, validatedPassword, 0, 15);
+            }else if(passwordBytes.length < 16){
+                System.arraycopy(passwordBytes, 0, validatedPassword, 0, passwordBytes.length-1);
+            }else{
+                validatedPassword = passwordBytes;
+            }
+        
+            aesKey = new SecretKeySpec(validatedPassword, "AES");
+            
+            cipher = Cipher.getInstance("AES/ECB/NoPadding");
+        }catch(UnsupportedEncodingException | NoSuchAlgorithmException | NoSuchPaddingException e){
             throw new UDPLibException("Failed to create Encryptor: ", e);
         }
         
@@ -59,9 +63,10 @@ public class Encryptor {
     public byte[]encrypt(byte[] decrypted){
          if(aesKey != null){
              try{
+                 System.err.println("UTF8 TO ENCRYPT:"+Datagrams.bytesToString(decrypted));
                 cipher.init(Cipher.ENCRYPT_MODE, aesKey);
                 return cipher.doFinal(decrypted);
-            }catch(IllegalBlockSizeException | InvalidKeyException  | BadPaddingException e ){
+            }catch(InvalidKeyException | IllegalBlockSizeException | BadPaddingException e ){
               throw new UDPLibException("Failed to decrypt message: ", e);
             } 
          }
@@ -78,7 +83,7 @@ public class Encryptor {
             try{
                cipher.init(Cipher.DECRYPT_MODE, aesKey);
                return cipher.doFinal(encrypted);
-            }catch(IllegalBlockSizeException | InvalidKeyException | BadPaddingException e){
+            }catch(InvalidKeyException | IllegalBlockSizeException | BadPaddingException e){
                throw new UDPLibException("Failed to decrypt message: ", e);
             }
         }

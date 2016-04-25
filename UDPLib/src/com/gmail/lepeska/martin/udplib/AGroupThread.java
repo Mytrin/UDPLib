@@ -122,7 +122,7 @@ public abstract class AGroupThread extends Thread{
     * @param type type of UDPLib datagram
     * @param data  decrypted data of datagram
     */
-   protected abstract void dealWithPacket(DatagramPacket source, DatagramTypes type, byte[] data);
+   protected abstract void dealWithPacket(DatagramPacket source, DatagramTypes type, String data);
 
    /**
     * Sends datagram with given data to specified GroupUser

@@ -24,7 +24,7 @@ public class ServerGroupNetwork extends AGroupNetwork{
      */
     public ServerGroupNetwork(String userName, String groupPassword, String hostAddress, 
             String groupAddress, int port, int userInfoPeriod, int deadTime) throws UnknownHostException,UDPLibException {
-        if(!ConfigLoader.isConfigLoaded()){
+        if(ConfigLoader.isConfigLoaded()){
             this.groupThread = new GroupServerThread(userName, groupPassword, hostAddress, 
                     groupAddress, port, userInfoPeriod, deadTime);
         }else{

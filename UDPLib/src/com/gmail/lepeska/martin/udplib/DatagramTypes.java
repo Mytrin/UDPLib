@@ -33,12 +33,12 @@ public enum DatagramTypes {
     ;
     
     /** byte, by which is this type represented in datagram content*/
-    public final byte index;
+    public final int index;
     
     /**
      * @param index byte, by which is this type represented in datagram content
      */
-    private DatagramTypes(byte index){
+    private DatagramTypes(int index){
         this.index = index;
     }
     
@@ -49,8 +49,8 @@ public enum DatagramTypes {
      * @param index datagram type
      * @return DatagramType on this index or TRASH
      */
-    public static DatagramTypes getTypeByIndex(byte index){
-        if(index < VALUES.length){
+    public static DatagramTypes getTypeByIndex(int index){
+        if(index < VALUES.length && index > -1){
             return VALUES[index];
         }
         return TRASH;   

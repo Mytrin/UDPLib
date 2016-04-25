@@ -9,8 +9,7 @@
 <?import javafx.scene.control.*?>
 <?import javafx.scene.layout.*?>
 
-
-<AnchorPane id="AnchorPane" prefHeight="555.0" prefWidth="832.0" xmlns:fx="http://javafx.com/fxml/1" xmlns="http://javafx.com/javafx/8.0.40" fx:controller="com.gmail.lepeska.martin.udplib.example.ExampleController">
+<AnchorPane id="AnchorPane" prefHeight="555.0" prefWidth="832.0" xmlns="http://javafx.com/javafx/8.0.40" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.gmail.lepeska.martin.udplib.example.ExampleController">
    <children>
       <TabPane prefHeight="555.0" prefWidth="832.0" tabClosingPolicy="UNAVAILABLE">
         <tabs>
@@ -94,7 +93,7 @@
                                     <Font size="18.0" />
                                  </font>
                               </Text>
-                              <Text strokeType="OUTSIDE" strokeWidth="0.0" text="Special thanks to: Jakub Jakoubek" textAlignment="CENTER">
+                              <Text strokeType="OUTSIDE" strokeWidth="0.0" text="Special thanks to: Jakub Jakoubek, Ondřej Dušek" textAlignment="CENTER">
                                  <font>
                                     <Font size="18.0" />
                                  </font>
