@@ -4,7 +4,7 @@ import java.io.UnsupportedEncodingException;
 import java.security.InvalidKeyException;
 import java.security.Key;
 import java.security.NoSuchAlgorithmException;
-import java.util.Arrays;
+import java.security.SecureRandom;
 import javax.crypto.BadPaddingException;
 import javax.crypto.Cipher;
 import javax.crypto.IllegalBlockSizeException;
@@ -63,13 +63,18 @@ public class Encryptor {
     public byte[]encrypt(byte[] decrypted){
          if(aesKey != null){
              try{
-                 System.err.println("UTF8 TO ENCRYPT:"+Datagrams.bytesToString(decrypted));
                 cipher.init(Cipher.ENCRYPT_MODE, aesKey);
-                return cipher.doFinal(decrypted);
+                
+                byte[] toReturn  = cipher.doFinal(decrypted);
+
+                return toReturn;
             }catch(InvalidKeyException | IllegalBlockSizeException | BadPaddingException e ){
               throw new UDPLibException("Failed to decrypt message: ", e);
             } 
          }
+         
+         
+         
          return decrypted;
     }
     
@@ -82,6 +87,7 @@ public class Encryptor {
         if(aesKey != null){
             try{
                cipher.init(Cipher.DECRYPT_MODE, aesKey);
+
                return cipher.doFinal(encrypted);
             }catch(InvalidKeyException | IllegalBlockSizeException | BadPaddingException e){
                throw new UDPLibException("Failed to decrypt message: ", e);
@@ -89,5 +95,12 @@ public class Encryptor {
         }
         return encrypted;
     }
+    
+    private static byte[] generateIV() {
+        SecureRandom random = new SecureRandom();
+        byte[] iv = new byte[16];
+        random.nextBytes(iv);
+        return iv;
+}
 
 }

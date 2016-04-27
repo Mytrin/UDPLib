@@ -49,7 +49,7 @@ public class Datagrams {
             String dataToEncrypt = messageType.index+message;
             
             while(dataToEncrypt.getBytes(ENCODING).length%16 != 0){
-                dataToEncrypt += " ";
+                dataToEncrypt += '\0';
             }
             byte[] encodedMessage = encryptor.encrypt(dataToEncrypt.getBytes(ENCODING));
 
@@ -173,8 +173,14 @@ public class Datagrams {
      * @return DatagramType of this datagram or TRASH
      */
     public static DatagramTypes getDatagramType(String message) {
-        System.err.println("UNPACKING: "+message); //todo
-        return DatagramTypes.getTypeByIndex(Integer.parseInt(""+message.charAt(0)));
+        String type = ""+message.charAt(0);
+        
+        if(type.matches("\\d")){
+             return DatagramTypes.getTypeByIndex(Integer.parseInt(type));
+        }else{
+            return DatagramTypes.TRASH;
+        }
+
     }
     
     /**
