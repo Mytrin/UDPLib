@@ -1,16 +1,22 @@
 package com.gmail.lepeska.martin.udplib.example;
 
 import com.gmail.lepeska.martin.udplib.AGroupNetwork;
-import com.gmail.lepeska.martin.udplib.ConfigLoader;
+import com.gmail.lepeska.martin.udplib.util.ConfigLoader;
 import com.gmail.lepeska.martin.udplib.IGroupListener;
 import com.gmail.lepeska.martin.udplib.StoredMessage;
+import com.gmail.lepeska.martin.udplib.UDPLibException;
 import com.gmail.lepeska.martin.udplib.client.GroupUser;
 import com.gmail.lepeska.martin.udplib.example.dialogs.CreateDialog;
+import com.gmail.lepeska.martin.udplib.example.dialogs.ExploreDialog;
+import com.gmail.lepeska.martin.udplib.example.dialogs.JoinDialog;
+import com.gmail.lepeska.martin.udplib.explore.AvailableServerRecord;
 import java.net.URL;
 import java.util.List;
 import java.util.ResourceBundle;
+import javafx.application.Platform;
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
+import javafx.scene.control.Alert;
 import javafx.scene.control.ListView;
 import javafx.scene.control.TextField;
 import javafx.scene.input.MouseEvent;
@@ -61,7 +67,7 @@ public class ExampleController implements Initializable, IGroupListener {
             network.leave();
             network = null;
         }
-        network = CreateDialog.zobrazDialog();
+        network = CreateDialog.show();
         
         if(network != null){
             network.addListener(this);
@@ -71,9 +77,20 @@ public class ExampleController implements Initializable, IGroupListener {
 
     @FXML
     private void connect(MouseEvent event) {
+        if(network != null){
+            network.leave();
+            network = null;
+        }
+        network = JoinDialog.show();
         
-        //network.addListener(this);
-        
+        if(network != null){
+            network.addListener(this);
+             try{
+                 network.start();
+             }catch(UDPLibException e){
+                 showErrorAlert(e);
+             }
+        }
     }
 
     @FXML
@@ -86,6 +103,15 @@ public class ExampleController implements Initializable, IGroupListener {
 
     @FXML
     private void explore(MouseEvent event) {
+        AvailableServerRecord selected = ExploreDialog.show();
+        if(selected != null){
+            if(network != null){
+                network.leave();
+                network = null;
+            }
+            JoinDialog.preset(selected.server.getHostName(), ""+selected.port);
+            JoinDialog.show();
+        }
     }
 
     @FXML
@@ -114,31 +140,53 @@ public class ExampleController implements Initializable, IGroupListener {
 
     //IGROUPNETWORK METHODS
     @Override
-    public void joined() {
-        chatBox.getItems().add("Joined group network...");
+    public void joined(GroupUser me) {
+        Platform.runLater(() -> {
+            userView.getItems().clear();
+            userView.getItems().add(me);
+            chatBox.getItems().add("Joined group network...");
+        });
     }
 
     @Override
     public void userKicked(GroupUser who) {
-       userView.getItems().remove(who);
+       Platform.runLater(() -> {
+        userView.getItems().remove(who);
+       });
     }
 
     @Override
     public void userJoined(GroupUser who) {
-       userView.getItems().add(who);
+       Platform.runLater(() -> {
+        userView.getItems().add(who);
+       });
     }
 
     @Override
     public void mesageReceived() {
-        List<StoredMessage> messages = network.getMessages();
+        Platform.runLater(() -> {
+            List<StoredMessage> messages = network.getMessages();
         
-        messages.stream().forEach((message) -> {
-            chatBox.getItems().add(message.sender.name+(!message.isMulticast?"(private)":"")+": "+message.message);
+            messages.stream().forEach((message) -> {
+                chatBox.getItems().add(message.sender.name+(!message.isMulticast?"(private)":"")+": "+message.message);
+            });
         });
     }
 
     @Override
     public void kicked() {
-        chatBox.getItems().add("Kicked from group network...");
+        Platform.runLater(() -> {
+            userView.getItems().clear();
+            chatBox.getItems().add("Kicked from group network...");
+        });
+    }
+    
+    public static final void showErrorAlert(Exception e) {
+        Alert alert = new Alert(Alert.AlertType.ERROR);
+        alert.setTitle(Example.NAME);
+        alert.setHeaderText("Error");
+        alert.setContentText(e.toString());
+
+        alert.showAndWait();
     }
 }

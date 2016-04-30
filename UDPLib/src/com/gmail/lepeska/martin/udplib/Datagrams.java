@@ -1,5 +1,6 @@
 package com.gmail.lepeska.martin.udplib;
 
+import com.gmail.lepeska.martin.udplib.util.Encryptor;
 import com.gmail.lepeska.martin.udplib.client.GroupUser;
 import com.gmail.lepeska.martin.udplib.server.GroupServerThread;
 import java.net.DatagramPacket;
@@ -138,7 +139,7 @@ public class Datagrams {
      * @return (not encrypted) Info about server for exploring client
      */
     public static byte[] createExploreResponse(boolean requiresPassword){
-        return stringToBytes(DATAGRAM_HEADER_STRING+DatagramTypes.CLIENT_EXPLORE_REQUEST+(requiresPassword?"1":0));
+        return stringToBytes(DATAGRAM_HEADER_STRING+DatagramTypes.CLIENT_EXPLORE_REQUEST+(requiresPassword?"1":"0"));
     }
     
     /**

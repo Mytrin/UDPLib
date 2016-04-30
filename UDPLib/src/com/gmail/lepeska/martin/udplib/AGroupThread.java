@@ -1,5 +1,6 @@
 package com.gmail.lepeska.martin.udplib;
 
+import com.gmail.lepeska.martin.udplib.util.Encryptor;
 import com.gmail.lepeska.martin.udplib.client.GroupUser;
 import java.net.DatagramPacket;
 import java.net.InetAddress;

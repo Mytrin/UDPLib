@@ -1,5 +1,8 @@
-package com.gmail.lepeska.martin.udplib;
+package com.gmail.lepeska.martin.udplib.client;
 
+import com.gmail.lepeska.martin.udplib.AGroupNetwork;
+import com.gmail.lepeska.martin.udplib.util.ConfigLoader;
+import com.gmail.lepeska.martin.udplib.UDPLibException;
 import com.gmail.lepeska.martin.udplib.client.GroupClientThread;
 import java.net.UnknownHostException;
 

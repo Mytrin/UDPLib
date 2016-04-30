@@ -1,5 +1,6 @@
-package com.gmail.lepeska.martin.udplib;
+package com.gmail.lepeska.martin.udplib.util;
 
+import com.gmail.lepeska.martin.udplib.UDPLibException;
 import java.io.UnsupportedEncodingException;
 import java.security.InvalidKeyException;
 import java.security.Key;
@@ -60,7 +61,7 @@ public class Encryptor {
      * @param decrypted bytes with message to encode
      * @return encrypt message
      */
-    public byte[]encrypt(byte[] decrypted){
+    public synchronized byte[] encrypt(byte[] decrypted){ //Forgot use synchronized and it ocasionally returned trash
          if(aesKey != null){
              try{
                 cipher.init(Cipher.ENCRYPT_MODE, aesKey);
@@ -83,24 +84,19 @@ public class Encryptor {
      * @param encrypted bytes with message to decode
      * @return  decrypted message
      */
-    public byte[]decrypt(byte[] encrypted){
+    public synchronized byte[] decrypt(byte[] encrypted){ //Forgot use synchronized and it ocasionally returned trash
         if(aesKey != null){
             try{
                cipher.init(Cipher.DECRYPT_MODE, aesKey);
 
-               return cipher.doFinal(encrypted);
+               byte[] toReturn = cipher.doFinal(encrypted);
+
+               return toReturn;
             }catch(InvalidKeyException | IllegalBlockSizeException | BadPaddingException e){
                throw new UDPLibException("Failed to decrypt message: ", e);
             }
         }
         return encrypted;
     }
-    
-    private static byte[] generateIV() {
-        SecureRandom random = new SecureRandom();
-        byte[] iv = new byte[16];
-        random.nextBytes(iv);
-        return iv;
-}
 
 }

@@ -1,5 +1,6 @@
 package com.gmail.lepeska.martin.udplib;
 
+import com.gmail.lepeska.martin.udplib.util.Encryptor;
 import org.junit.Test;
 import static org.junit.Assert.*;
 

@@ -4,7 +4,7 @@ import com.gmail.lepeska.martin.udplib.client.GroupUser;
 import java.util.List;
 
 /**
- * This interface serves as cover over UDP multicast communication.
+ * This class serves as cover over UDP multicast communication.
  * It enables to easily send messages and files to other clients.
  * There are two types of GroupNetwork - HostGroupNetwork and ClientGroupNetwork 
  * Clients usually send all important messages to host, who sends them to all clients.

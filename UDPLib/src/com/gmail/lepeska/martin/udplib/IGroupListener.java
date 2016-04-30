@@ -13,8 +13,9 @@ public interface IGroupListener {
     
     /**
      * Called on successful join(or creation) to Network
+     * @param me how am I represented to other members of network
      */
-    public void joined();
+    public void joined(GroupUser me);
     
     /**
      * Called when client is notified about loss of GroupUser

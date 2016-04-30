@@ -1,9 +1,9 @@
 package com.gmail.lepeska.martin.udplib.client;
 
-import com.gmail.lepeska.martin.udplib.ConfigLoader;
+import com.gmail.lepeska.martin.udplib.util.ConfigLoader;
 import com.gmail.lepeska.martin.udplib.DatagramTypes;
 import com.gmail.lepeska.martin.udplib.Datagrams;
-import com.gmail.lepeska.martin.udplib.Encryptor;
+import com.gmail.lepeska.martin.udplib.util.Encryptor;
 import com.gmail.lepeska.martin.udplib.AGroupThread;
 import com.gmail.lepeska.martin.udplib.StoredMessage;
 import com.gmail.lepeska.martin.udplib.UDPLibException;
@@ -91,10 +91,11 @@ public class GroupClientThread  extends AGroupThread{
                     
                     socket.setSoTimeout(ConfigLoader.getInt("user-info-period")*2);
                     
-                    this.groupUsers.add(new GroupUser(userName, hostAddress));
+                    GroupUser me = new GroupUser(userName, hostAddress);
                     
+                    this.groupUsers.add(me);
                     listeners.stream().forEach((listener) -> {
-                      listener.joined();
+                      listener.joined(me);
                     });
                 }else{
                     throw new UDPLibException("Wrong password!");
@@ -201,7 +202,7 @@ public class GroupClientThread  extends AGroupThread{
     
     @Override
     public void leave() {
-        Thread.currentThread().interrupt();
+        this.interrupt();
     }
     
     @Override

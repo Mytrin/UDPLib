@@ -1,9 +1,9 @@
 package com.gmail.lepeska.martin.udplib.server;
 
-import com.gmail.lepeska.martin.udplib.ConfigLoader;
+import com.gmail.lepeska.martin.udplib.util.ConfigLoader;
 import com.gmail.lepeska.martin.udplib.DatagramTypes;
 import com.gmail.lepeska.martin.udplib.Datagrams;
-import com.gmail.lepeska.martin.udplib.Encryptor;
+import com.gmail.lepeska.martin.udplib.util.Encryptor;
 import com.gmail.lepeska.martin.udplib.AGroupThread;
 import com.gmail.lepeska.martin.udplib.StoredMessage;
 import com.gmail.lepeska.martin.udplib.UDPLibException;
@@ -104,8 +104,10 @@ public class GroupServerThread extends AGroupThread{
             refreshThread.setGroupServer(this);
             refreshThread.start();
             
+            ServerGroupUser me = new ServerGroupUser(userName, hostAddress);
+            groupUsers.add(me);
             listeners.stream().forEach((listener) -> {
-                listener.joined();
+                listener.joined(me);
             });
         }catch(Exception e){
            finishThread();
@@ -147,7 +149,6 @@ public class GroupServerThread extends AGroupThread{
                  Logger.getLogger(ConfigLoader.class.getName()).log(Level.SEVERE, "Error when parsing datagram! ", e);
             }
         }
-
         finishThread();
     }
 
@@ -162,7 +163,7 @@ public class GroupServerThread extends AGroupThread{
 
     @Override
     public void leave() {
-        Thread.currentThread().interrupt();
+        this.interrupt();
     }
 
     @Override

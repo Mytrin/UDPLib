@@ -1,4 +1,4 @@
-package com.gmail.lepeska.martin.udplib;
+package com.gmail.lepeska.martin.udplib.util;
 
 import java.io.File;
 import java.util.HashMap;
@@ -16,7 +16,7 @@ import org.w3c.dom.NodeList;
  */
 public final class ConfigLoader {
     /**Version of this library*/
-    public static final String VERSION ="DEV 2";
+    public static final String VERSION ="ALPHA";
     /** Indicator that some configuration was already loaded */
      private static boolean configLoaded = false;
      /** Loaded values */
