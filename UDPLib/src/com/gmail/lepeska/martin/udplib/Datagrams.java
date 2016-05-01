@@ -37,7 +37,7 @@ public class Datagrams {
     /**
      * Creates UDPLib message datagram with given type. Private because of safety(messageType shouldn't be exposed)
      * 
-     * HEAD(N B)TYPE(1 B)MESSAGE
+     * HEAD(N B)TYPE(1 B)#MESSAGE
      * 
      * @param encryptor Encryptor of sending thread
      * @param message data to be sent
@@ -47,7 +47,7 @@ public class Datagrams {
     public static byte[] createDatagram(Encryptor encryptor, String message, DatagramTypes messageType){
         try{
             //I know it's ugly, just haven't find better way so far...
-            String dataToEncrypt = messageType.index+message;
+            String dataToEncrypt = messageType.index+DELIMITER+message;
             
             while(dataToEncrypt.getBytes(ENCODING).length%16 != 0){
                 dataToEncrypt += '\0';
@@ -103,7 +103,7 @@ public class Datagrams {
     }
     
     /**
-     * Format: HEADER(N bytes)TYPE(1 byte)NAME|IP|PING_TO_SERVER
+     * Format: HEADER(N bytes)TYPE#NAME|IP|PING_TO_SERVER
      * @param encryptor  Encryptor of sending thread
      * @param user user, about whom is this info
      * @return data of UDPLib CLIENT_IS_ALIVE_RESPONSE datagram
@@ -115,7 +115,7 @@ public class Datagrams {
     }
     
     /**
-     * Format: HEADER(N bytes)TYPE(1 byte)NAME|IP
+     * Format: HEADER(N bytes)TYPE#NAME|IP
      * @param encryptor  Encryptor of sending thread
      * @param user user, about whom is this info
      * @return data of UDPLib SERVER_CLIENT_DEAD datagram
@@ -134,7 +134,7 @@ public class Datagrams {
     }
     
     /**
-     * Format: HEADER(N bytes)TYPE(1 byte)PASSWORD(1 byte - 1 - requires password/0)
+     * Format: HEADER(N bytes)TYPE#PASSWORD(1 byte - 1 - requires password/0)
      * @param requiresPassword true, if server requires password
      * @return (not encrypted) Info about server for exploring client
      */
@@ -156,7 +156,7 @@ public class Datagrams {
     }
     
     /**
-     * HEAD(N B)TYPE(1B)GROUP|USE_PASSWORD
+     * HEAD(N B)TYPE#GROUP|USE_PASSWORD
      * @param encryptor Encryptor of sending thread
      * @param groupAddress Group address of sending thread
      * @param clientAddress IP of client to let him know which interface he should use
@@ -174,9 +174,9 @@ public class Datagrams {
      * @return DatagramType of this datagram or TRASH
      */
     public static DatagramTypes getDatagramType(String message) {
-        String type = ""+message.charAt(0);
+        String type = ""+message.substring(0, message.indexOf(DELIMITER));
         
-        if(type.matches("\\d")){
+        if(type.matches("\\d*")){
              return DatagramTypes.getTypeByIndex(Integer.parseInt(type));
         }else{
             return DatagramTypes.TRASH;
@@ -206,12 +206,12 @@ public class Datagrams {
     }
     
     /**
-     * Follows after unpack(), removes byte informing about type of datagram
+     * Follows after unpack(), removes part informing about type of datagram
      * @param data
      * @return data without type of datagram
      */
     public static String unpack2(String data){
-        return data.trim().substring(1);
+        return data.trim().substring(data.indexOf(DELIMITER)+1);
     }
     
     /**

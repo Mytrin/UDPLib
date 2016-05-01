@@ -73,8 +73,8 @@ public class GroupServerThread extends AGroupThread{
             
             if(hostAddress.getHostAddress().equals("0.0.0.0")){
                 Logger.getLogger(ConfigLoader.class.getName()).log(Level.INFO, "Selected 0.0.0.0 -> detecting interfaces...");
-                socket.joinGroup(groupAddress);
-                
+               // socket.joinGroup(groupAddress);
+
                 //be able to multicast on all posible interfaces
                 //still lesser evil than switching interfaces on one socket
                 Enumeration<NetworkInterface> nets = NetworkInterface.getNetworkInterfaces();
@@ -88,6 +88,7 @@ public class GroupServerThread extends AGroupThread{
                                 MulticastSocket sendSocket = new MulticastSocket();
                                 sendSocket.setNetworkInterface(nic);
                                 sendSockets.add(sendSocket);
+                                socket.joinGroup(new InetSocketAddress(groupAddress, port), nic);
                                 Logger.getLogger(ConfigLoader.class.getName()).log(Level.INFO, "Bound on: {0} nic: {1}", new Object[]{address, nic});
                             }
                         }
@@ -130,7 +131,7 @@ public class GroupServerThread extends AGroupThread{
                 socket.receive(packet);
                 
                 boolean isExploreDatagram = Datagrams.isExploreDatagram(Datagrams.bytesToString(buf));
-
+                    System.err.println(Datagrams.bytesToString(buf));
                 if(isExploreDatagram){
                     sendDatagram(packet.getAddress(), Datagrams.createExploreResponse(groupPassword != null));
                 }else{
@@ -235,7 +236,7 @@ public class GroupServerThread extends AGroupThread{
 
     @Override
     public void sendMulticastMessage(String message) {
-        byte[] data = Datagrams.createMessageDatagram(encryptor, message, false, this);
+        byte[] data = Datagrams.createMessageDatagram(encryptor, message, true, this);
         sendMulticastDatagram(data);
     }
 

@@ -7,6 +7,7 @@ import java.net.InetAddress;
 import java.net.MulticastSocket;
 import java.net.NetworkInterface;
 import java.net.SocketException;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Enumeration;
 import java.util.LinkedList;
@@ -75,8 +76,10 @@ public abstract class AGroupThread extends Thread{
     * @return Messages received from last time of pickMessages() call
     */
    public List<StoredMessage> pickMessages(){ 
-       LinkedList<StoredMessage> pickedMessages = new LinkedList<>();
-       Collections.copy(pickedMessages, messages);
+       ArrayList<StoredMessage> pickedMessages = new ArrayList<>();
+       for(StoredMessage msg : messages){
+           pickedMessages.add(msg);
+       }
        messages.clear();
        
        return pickedMessages;

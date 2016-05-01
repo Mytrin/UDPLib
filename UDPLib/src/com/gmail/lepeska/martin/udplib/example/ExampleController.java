@@ -14,6 +14,7 @@ import java.net.URL;
 import java.util.List;
 import java.util.ResourceBundle;
 import javafx.application.Platform;
+import javafx.event.Event;
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
 import javafx.scene.control.Alert;
@@ -115,7 +116,7 @@ public class ExampleController implements Initializable, IGroupListener {
     }
 
     @FXML
-    private void send(MouseEvent event) {
+    private void send(Event event) {
          if(network != null){
              String message = sendBox.getText();
              network.sendGroupMessage(message);

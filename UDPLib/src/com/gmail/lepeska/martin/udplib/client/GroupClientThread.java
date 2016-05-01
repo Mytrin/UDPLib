@@ -87,7 +87,9 @@ public class GroupClientThread  extends AGroupThread{
                     hostAddress = InetAddress.getByName(responseSplit[2]); 
                     
                     NetworkInterface nic = NetworkInterface.getByInetAddress(hostAddress);
-                    socket.joinGroup(new InetSocketAddress(responseSplit[0], port), nic);
+                    System.err.println(responseSplit[0]+":"+port+ " "+nic);
+                    socket.setNetworkInterface(nic);
+                    socket.joinGroup(InetAddress.getByName(responseSplit[0]));
                     
                     socket.setSoTimeout(ConfigLoader.getInt("user-info-period")*2);
                     
@@ -149,14 +151,13 @@ public class GroupClientThread  extends AGroupThread{
     protected void dealWithPacket(DatagramPacket source, DatagramTypes type, String data) {       
         String[] messageSplit = data.split(Datagrams.DELIMITER);
         GroupUser user;
-
         try{
             switch(type){
                 case SERVER_CLIENTS_INFO: user = findGroupUserbyInetAddr(InetAddress.getByName((messageSplit[1])));
                                       if(user != null){
                                           user.setPingToHost(Long.parseLong(messageSplit[2]));
                                       }else{
-                                          GroupUser newUser = new GroupUser(messageSplit[0], InetAddress.getByName(messageSplit[1]));
+                                          GroupUser newUser = new GroupUser(messageSplit[0], !messageSplit[1].equals("0.0.0.0")?InetAddress.getByName(messageSplit[1]):serverAddress);
                                           newUser.setPingToHost(Long.parseLong(messageSplit[2]));
                                           groupUsers.add(newUser);
                                           listeners.stream().forEach((listener) -> {
@@ -190,7 +191,7 @@ public class GroupClientThread  extends AGroupThread{
                                                 addMessage(new StoredMessage(data, user, true));
                                             }
                                             break;
-                case SERVER_UNICAST_MESSAGE: addMessage(new StoredMessage(data, findGroupUserbyInetAddr(source.getAddress()), false));
+                case SERVER_UNICAST_MESSAGE:addMessage(new StoredMessage(data, findGroupUserbyInetAddr(source.getAddress()), false));
                                             break;
                 case SERVER_MULTICAST_MESSAGE: addMessage(new StoredMessage(data, findGroupUserbyInetAddr(source.getAddress()), true));
                                                break;
@@ -213,7 +214,7 @@ public class GroupClientThread  extends AGroupThread{
 
     @Override
     public void sendMulticastMessage(String message) {
-        byte[] data = Datagrams.createMessageDatagram(encryptor, message, false, this);
+        byte[] data = Datagrams.createMessageDatagram(encryptor, message, true, this);
         sendMulticastDatagram(data);
     }
 
@@ -231,10 +232,15 @@ public class GroupClientThread  extends AGroupThread{
      */
     private GroupUser findGroupUserbyInetAddr(InetAddress ip){
         for(GroupUser user: groupUsers){
-            if(user.ip.equals(ip)){
+            if(user.ip.getHostName().equals(ip.getHostName())){
                 return user;
             }
         }
+        
+        if(ip.getHostName().equals("0.0.0.0")){
+            return findGroupUserbyInetAddr(serverAddress);
+        }
+        
         return null;
     }
 }

@@ -46,7 +46,7 @@
                                     <Button mnemonicParsing="false" onMouseClicked="#disconnect" text="Disconnect" />
                                     <Button mnemonicParsing="false" onMouseClicked="#explore" text="Explore" />
                                     <Separator minWidth="36.0" orientation="VERTICAL" prefHeight="36.0" prefWidth="36.0" />
-                                    <TextField fx:id="sendBox" prefHeight="26.0" prefWidth="296.0" />
+                                    <TextField fx:id="sendBox" onAction="#send" prefHeight="26.0" prefWidth="296.0" />
                                   <Button mnemonicParsing="false" onMouseClicked="#send" text="Send" />
                                     <Button mnemonicParsing="false" onMouseClicked="#whisper" text="Whisper" />
                                  </children>
