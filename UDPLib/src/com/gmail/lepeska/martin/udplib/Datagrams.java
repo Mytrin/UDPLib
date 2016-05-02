@@ -130,7 +130,7 @@ public class Datagrams {
      * @return (not encrypted) client request for server to send info about themselves
      */
     public static byte[] createExploreRequest(){
-        return stringToBytes(DATAGRAM_HEADER_STRING+DatagramTypes.CLIENT_EXPLORE_REQUEST);
+        return stringToBytes(DATAGRAM_HEADER_STRING+DatagramTypes.CLIENT_EXPLORE_REQUEST.index);
     }
     
     /**
@@ -139,7 +139,7 @@ public class Datagrams {
      * @return (not encrypted) Info about server for exploring client
      */
     public static byte[] createExploreResponse(boolean requiresPassword){
-        return stringToBytes(DATAGRAM_HEADER_STRING+DatagramTypes.CLIENT_EXPLORE_REQUEST+(requiresPassword?"1":"0"));
+        return stringToBytes(DATAGRAM_HEADER_STRING+DatagramTypes.SERVER_EXPLORE_RESPONSE.index+DELIMITER+(requiresPassword?"1":"0"));
     }
     
     /**
@@ -170,18 +170,63 @@ public class Datagrams {
     }
     
     /**
+     * HEAD(N B)TYPE#FILENAME#INDEX#TOTAL#PART#
+     * @param encryptor Encryptor of sending thread
+     * @param fileName - String, under which should be the SharedFile stored in Map
+     * @param filePart - Line or part of line of file to send
+     * @param index - index of this part in array of SharedFile
+     * @param total - count of all parts, which were or will be sent, so client can initialize array of SharedFile
+     * @return data of UDPLib SERVER_FILE_SHARE_PART datagram
+     */
+    public static byte[] createServerFileSharePart(Encryptor encryptor, String fileName, String filePart, int index, int total){
+        String message = fileName+DELIMITER+index+DELIMITER+total+DELIMITER+filePart+DELIMITER;
+        
+        return createDatagram(encryptor, message, DatagramTypes.SERVER_FILE_SHARE_PART);
+    }
+    
+    /**
+     * HEAD(N B)TYPE#FILENAME#
+     * @param encryptor Encryptor of sending thread
+     * @param fileName - String, under which should be the SharedFile stored in Map
+     * @return data of UDPLib SERVER_FILE_SHARE_FINISH datagram
+     */
+    public static byte[] createServerFileShareFinish(Encryptor encryptor, String fileName){
+        String message = fileName+DELIMITER;
+        
+        return createDatagram(encryptor, message, DatagramTypes.SERVER_FILE_SHARE_FINISH);
+    }
+    
+    /**
+     * HEAD(N B)TYPE#FILENAME#INDEX
+     * @param encryptor Encryptor of sending thread
+     * @param fileName - String, under which should be the SharedFile stored in Map
+     * @param index - index of filePart, which is client missing
+     * @return data of UDPLib CLIENT_FILE_SHARE_PART_REQUEST datagram
+     */
+    public static byte[] createClientFileSharePartRequest(Encryptor encryptor, String fileName, int index){
+        String message = fileName+DELIMITER+index;
+        
+        return createDatagram(encryptor, message, DatagramTypes.CLIENT_FILE_SHARE_PART_REQUEST);
+    }
+    
+    /**
      * @param message Data of datagram returned from unpack()
      * @return DatagramType of this datagram or TRASH
      */
     public static DatagramTypes getDatagramType(String message) {
-        String type = ""+message.substring(0, message.indexOf(DELIMITER));
+        int index = message.indexOf(DELIMITER);
+        String type;
+        if(index == -1){
+            type = message;
+        }else{
+            type = ""+message.substring(0, index);
+        }
         
         if(type.matches("\\d*")){
              return DatagramTypes.getTypeByIndex(Integer.parseInt(type));
         }else{
             return DatagramTypes.TRASH;
         }
-
     }
     
     /**
@@ -189,7 +234,7 @@ public class Datagrams {
      * @return DatagramType of this datagram or TRASH
      */
     public static boolean isExploreDatagram(String message) {
-        return message.trim().equals(DATAGRAM_HEADER_STRING+DatagramTypes.CLIENT_EXPLORE_REQUEST);
+        return message.trim().equals(DATAGRAM_HEADER_STRING+DatagramTypes.CLIENT_EXPLORE_REQUEST.index);
     }
     
     /**

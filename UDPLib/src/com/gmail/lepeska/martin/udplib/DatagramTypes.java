@@ -29,6 +29,14 @@ public enum DatagramTypes {
     CLIENT_UNICAST_MESSAGE((byte)10),
     CLIENT_MULTICAST_MESSAGE((byte)11),
     
+    /**Sent by server automatically or on request by client*/
+    SERVER_FILE_SHARE_PART((byte)12),
+    /**Sent by server automatically after sending all SERVER_FILE_SHARE_PARTs, 
+     * client may request resending some of them*/
+    SERVER_FILE_SHARE_FINISH((byte)13),
+    /**Sent by client after SERVER_FILE_SHARE_FINISH to obtain missing SERVER_FILE_SHARE_PARTs*/
+    CLIENT_FILE_SHARE_PART_REQUEST((byte)14),
+    
     TRASH((byte)-1);
     ;
     
