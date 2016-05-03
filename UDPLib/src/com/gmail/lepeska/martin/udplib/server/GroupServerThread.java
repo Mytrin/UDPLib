@@ -8,6 +8,9 @@ import com.gmail.lepeska.martin.udplib.AGroupThread;
 import com.gmail.lepeska.martin.udplib.StoredMessage;
 import com.gmail.lepeska.martin.udplib.UDPLibException;
 import com.gmail.lepeska.martin.udplib.client.GroupUser;
+import com.gmail.lepeska.martin.udplib.files.IServerShareListener;
+import com.gmail.lepeska.martin.udplib.files.ServerSharedFile;
+import java.io.File;
 import java.net.DatagramPacket;
 import java.net.Inet6Address;
 import java.net.InetAddress;
@@ -18,6 +21,7 @@ import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Enumeration;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
@@ -35,6 +39,8 @@ public class GroupServerThread extends AGroupThread{
     /**This thread maintains info about group network*/
     private final ServerGroupInfoThread refreshThread;
 
+    private final HashMap<String, ServerSharedFile> sharedFiles = new HashMap<>();
+    
     /**
      * Creates new GroupServerThread bound on interface of given hostAddress with given password and group address.
      * 
@@ -240,6 +246,20 @@ public class GroupServerThread extends AGroupThread{
         sendMulticastDatagram(data);
     }
 
+    /**
+     * 
+     * @param file content to share
+     * @param name unique id
+     * @param listener object to notify about progress
+     */
+    public void shareFile(File file, String name, IServerShareListener listener){
+        ServerSharedFile serverFile = new ServerSharedFile(file, name, this, encryptor, refreshThread.getDeadTime(), listener);
+        sharedFiles.put(name, serverFile);
+        Thread sharing = new Thread(serverFile);
+        sharing.setDaemon(true);
+        sharing.start();
+    }
+    
     @Override
     protected void dealWithPacket(DatagramPacket source, DatagramTypes type, String data) {
         String[] messageSplit = data.split(Datagrams.DELIMITER);
@@ -266,6 +286,9 @@ public class GroupServerThread extends AGroupThread{
             case CLIENT_MULTICAST_MESSAGE:  user = findGroupUserbyInetAddr(source.getAddress());
                                             addMessage(new StoredMessage(data, user, true));
                                             break;
+            case CLIENT_FILE_SHARE_PART_REQUEST: ServerSharedFile requested = sharedFiles.get(messageSplit[0]);
+                                                    if(requested != null) requested.partRequest(Integer.parseInt(messageSplit[1]));
+                                                    break;
         }
     }
     

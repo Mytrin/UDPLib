@@ -74,4 +74,13 @@ public class ServerGroupInfoThread extends Thread{
     public void setDeadTime(int deadTime) {
         this.deadTime.set(deadTime);
     }
+
+    /**
+     * @return Time, which will server wait after sending request, before it announces user as dead (ms)
+     */
+    public int getDeadTime() {
+        return deadTime.get();
+    }
+    
+    
 }

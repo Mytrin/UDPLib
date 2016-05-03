@@ -3,7 +3,10 @@ package com.gmail.lepeska.martin.udplib.server;
 import com.gmail.lepeska.martin.udplib.AGroupNetwork;
 import com.gmail.lepeska.martin.udplib.util.ConfigLoader;
 import com.gmail.lepeska.martin.udplib.UDPLibException;
+import com.gmail.lepeska.martin.udplib.files.IServerShareListener;
+import java.io.File;
 import java.net.UnknownHostException;
+import java.util.Objects;
 
 /**
  * AGroupNetwork implementation, which creates new group network, where user becomes "server."
@@ -83,4 +86,16 @@ public class ServerGroupNetwork extends AGroupNetwork{
         this(userName, null, ConfigLoader.getString("default-server-ip"), ConfigLoader.getString("default-group"), ConfigLoader.getInt("default-port"));
     }
 
+    /**
+     * Sends content of file into group, to share it with other client.
+     * 
+     * @param file content to share
+     * @param name unique id
+     * @param listener object to notify about progress
+     */
+    public void shareFile(File file, String name, IServerShareListener listener){
+       Objects.requireNonNull(file);
+       ((GroupServerThread)groupThread).shareFile(file, name, listener);
+    }
+    
 }

@@ -7,9 +7,13 @@ import com.gmail.lepeska.martin.udplib.StoredMessage;
 import com.gmail.lepeska.martin.udplib.UDPLibException;
 import com.gmail.lepeska.martin.udplib.client.GroupUser;
 import com.gmail.lepeska.martin.udplib.example.dialogs.CreateDialog;
+import com.gmail.lepeska.martin.udplib.example.dialogs.DialogUtils;
 import com.gmail.lepeska.martin.udplib.example.dialogs.ExploreDialog;
 import com.gmail.lepeska.martin.udplib.example.dialogs.JoinDialog;
 import com.gmail.lepeska.martin.udplib.explore.AvailableServerRecord;
+import com.gmail.lepeska.martin.udplib.files.IServerShareListener;
+import com.gmail.lepeska.martin.udplib.server.ServerGroupNetwork;
+import java.io.File;
 import java.net.URL;
 import java.util.List;
 import java.util.ResourceBundle;
@@ -17,12 +21,12 @@ import javafx.application.Platform;
 import javafx.event.Event;
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
-import javafx.scene.control.Alert;
 import javafx.scene.control.ListView;
 import javafx.scene.control.TextField;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.text.Text;
 import javafx.scene.web.WebView;
+import javafx.stage.FileChooser;
 
 /**
  * Example chat using UDPLib
@@ -34,7 +38,7 @@ public class ExampleController implements Initializable, IGroupListener {
     @FXML
     private ListView<GroupUser> userView;
     @FXML
-    private ListView<?> fileView;
+    private ListView<File> fileView;
     @FXML
     private ListView<String> chatBox;
     @FXML
@@ -60,6 +64,10 @@ public class ExampleController implements Initializable, IGroupListener {
 
     @FXML
     private void showFile(MouseEvent event) {
+        File selected = fileView.getSelectionModel().getSelectedItem();
+        if(selected != null){
+            DialogUtils.showFileDialog(selected);
+        }
     }
 
     @FXML
@@ -89,7 +97,7 @@ public class ExampleController implements Initializable, IGroupListener {
              try{
                  network.start();
              }catch(UDPLibException e){
-                 showErrorAlert(e);
+                 DialogUtils.showErrorAlert(e);
              }
         }
     }
@@ -139,6 +147,38 @@ public class ExampleController implements Initializable, IGroupListener {
         }
     }
 
+    @FXML
+    private void share(){
+        if(network != null){
+            if(network instanceof ServerGroupNetwork){
+            FileChooser fileChooser = new FileChooser();
+            fileChooser.setTitle("Select file to share");
+            File toShare = fileChooser.showOpenDialog(null);
+            
+            if(toShare != null && toShare.isFile()){
+                ((ServerGroupNetwork)network).shareFile(toShare, toShare.getName(), new IServerShareListener(){
+                    @Override
+                    public void onFinished(File file) {
+                       Platform.runLater(() -> {
+                           DialogUtils.showInfo(file.getName()+" successfuly shared!");
+                           fileView.getItems().add(file);
+                       });
+                    }
+
+                    @Override
+                    public void onFail(File file, Exception e) {
+                        Platform.runLater(() -> {
+                           DialogUtils.showErrorAlert(file.getName()+": "+e);
+                       });
+                    }
+                });
+            }
+            }else{
+                DialogUtils.showErrorAlert("Only server can share files!");
+            }
+        }
+    }
+    
     //IGROUPNETWORK METHODS
     @Override
     public void joined(GroupUser me) {
@@ -182,12 +222,4 @@ public class ExampleController implements Initializable, IGroupListener {
         });
     }
     
-    public static final void showErrorAlert(Exception e) {
-        Alert alert = new Alert(Alert.AlertType.ERROR);
-        alert.setTitle(Example.NAME);
-        alert.setHeaderText("Error");
-        alert.setContentText(e.toString());
-
-        alert.showAndWait();
-    }
 }

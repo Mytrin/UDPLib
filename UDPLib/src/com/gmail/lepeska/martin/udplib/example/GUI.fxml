@@ -28,7 +28,7 @@
                                           <HBox alignment="CENTER" prefHeight="38.0" prefWidth="248.0" spacing="30.0">
                                              <children>
                                                 <Button mnemonicParsing="false" onMouseClicked="#showFile" text="Show file" />
-                                                <Button mnemonicParsing="false" text="Share file" />
+                                                <Button mnemonicParsing="false" onAction="#share" text="Share file" />
                                              </children>
                                           </HBox>
                                        </children>
