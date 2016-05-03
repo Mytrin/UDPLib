@@ -200,6 +200,7 @@ public class GroupClientThread  extends AGroupThread{
                                              SharedFile file = sharedFiles.get(fileName);
                                              if(file == null){
                                                  file = new SharedFile(fileName, Integer.parseInt(messageSplit[2]), this, encryptor, serverAddress);
+                                                 sharedFiles.put(fileName, file);
                                              }
                                              //in case of splitting because of DELIMITER...
                                              String line = messageSplit[3];
@@ -207,11 +208,15 @@ public class GroupClientThread  extends AGroupThread{
                                                  line += "#"+messageSplit[i];
                                              }
                                              file.partReceived(Integer.parseInt(messageSplit[1]), line);
+                                             System.out.println("part "+fileName);
                                              break;
                 case SERVER_FILE_SHARE_FINISH: SharedFile finishedFile = sharedFiles.get(messageSplit[0]);
                                              if(finishedFile != null){
                                                  finishedFile.finished();
+                                             }else{
+                                                 System.err.println("Not found "+messageSplit[0]);
                                              }//else it's too late to request new 
+                                             System.out.println("file done?");
                                              break;
                 case CLIENT_UNICAST_MESSAGE:    user = findGroupUserbyInetAddr(source.getAddress());
                                             if(!(user != null && user.name.equals(userName) && user.ip.equals(hostAddress))){ //discard own messages

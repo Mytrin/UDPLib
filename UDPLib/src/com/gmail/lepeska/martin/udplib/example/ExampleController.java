@@ -224,6 +224,7 @@ public class ExampleController implements Initializable, IGroupListener {
 
     @Override
     public void fileReceived(File receivedFile) {
+        System.err.println("Shown");
         fileView.getItems().add(receivedFile);
     }
     

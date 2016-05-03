@@ -61,12 +61,14 @@ public class SharedFile {
         if(!isFinished){
             for(int i=0; i < parts.length; i++){
                 if(parts[i] == null){
+                    System.out.println("Ouch "+i);
                     byte[] datagram = Datagrams.createClientFileSharePartRequest(encryptor, name, i);
                     client.sendDatagram(server, datagram);
                     break;
                 }
             }
             isFinished = true;
+            System.out.println("done!");
             createFile();
         }
     }
