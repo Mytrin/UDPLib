@@ -58,7 +58,7 @@ public class ExampleController implements Initializable, IGroupListener {
         
         versionText.setText(versionText.getText()+ConfigLoader.VERSION);
         
-        docView.getEngine().load("https://github.com/Mytrin/UDPLib"); //TODO doc
+        docView.getEngine().load("https://github.com/Mytrin/UDPLib/javadoc/index.html"); //TODO doc
 
     }    
 
@@ -221,5 +221,11 @@ public class ExampleController implements Initializable, IGroupListener {
             chatBox.getItems().add("Kicked from group network...");
         });
     }
+
+    @Override
+    public void fileReceived(File receivedFile) {
+        fileView.getItems().add(receivedFile);
+    }
+    
     
 }

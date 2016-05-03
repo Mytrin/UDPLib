@@ -252,7 +252,7 @@ public class Datagrams {
     
     /**
      * Follows after unpack(), removes part informing about type of datagram
-     * @param data
+     * @param data previously unpacked data 
      * @return data without type of datagram
      */
     public static String unpack2(String data){

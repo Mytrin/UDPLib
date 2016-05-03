@@ -1,7 +1,7 @@
-
 package com.gmail.lepeska.martin.udplib;
 
 import com.gmail.lepeska.martin.udplib.client.GroupUser;
+import java.io.File;
 
 /**
  *
@@ -38,4 +38,10 @@ public interface IGroupListener {
      * Called when client had to leave network
      */
     public void kicked();
+    
+    /**
+     * Called when client received new file
+     * @param receivedFile newly received file
+     */
+    public void fileReceived(File receivedFile);
 }

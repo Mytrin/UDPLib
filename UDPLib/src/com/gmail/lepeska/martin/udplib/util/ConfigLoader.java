@@ -16,7 +16,7 @@ import org.w3c.dom.NodeList;
  */
 public final class ConfigLoader {
     /**Version of this library*/
-    public static final String VERSION ="ALPHA 1.1";
+    public static final String VERSION ="BETA";
     /** Indicator that some configuration was already loaded */
      private static boolean configLoaded = false;
      /** Loaded values */

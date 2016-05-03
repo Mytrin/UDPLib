@@ -168,7 +168,7 @@ public abstract class AGroupThread extends Thread{
    
    /**
     * Adds new message to collection and notifies listener
-    * @param message 
+    * @param message received message
     */
    protected void addMessage(StoredMessage message){
        messages.add(message);

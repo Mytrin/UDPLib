@@ -7,16 +7,18 @@ import com.gmail.lepeska.martin.udplib.util.Encryptor;
 import com.gmail.lepeska.martin.udplib.AGroupThread;
 import com.gmail.lepeska.martin.udplib.StoredMessage;
 import com.gmail.lepeska.martin.udplib.UDPLibException;
+import com.gmail.lepeska.martin.udplib.files.SharedFile;
+import java.io.File;
 import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.InetAddress;
-import java.net.InetSocketAddress;
 import java.net.MulticastSocket;
 import java.net.NetworkInterface;
 import java.net.SocketTimeoutException;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Objects;
@@ -28,6 +30,9 @@ import java.util.logging.Logger;
  * @author Martin Lepeška
  */
 public class GroupClientThread  extends AGroupThread{
+    
+    /**Files received in group*/
+    private final HashMap<String, SharedFile> sharedFiles = new HashMap<>();
     
     /**Users in group*/
     private final ArrayList<GroupUser> groupUsers= new ArrayList<>();
@@ -52,6 +57,16 @@ public class GroupClientThread  extends AGroupThread{
         this.port = port;
         this.encryptor = (groupPassword!=null)?new Encryptor(groupPassword):new Encryptor();
         setDaemon(true);
+    }
+    
+    /**
+     * Automatically called from SharedFile, when ti creates new temporary file
+     * @param file temporary file containing shared content from network
+     */
+    public void receiveFile(File file) {
+        listeners.stream().forEach((listener) -> {
+            listener.fileReceived(file);
+        });
     }
     
     /**
@@ -146,7 +161,7 @@ public class GroupClientThread  extends AGroupThread{
         
         finishThread();
     }
-
+    
     @Override
     protected void dealWithPacket(DatagramPacket source, DatagramTypes type, String data) {       
         String[] messageSplit = data.split(Datagrams.DELIMITER);
@@ -181,6 +196,23 @@ public class GroupClientThread  extends AGroupThread{
                                       break;
                 case SERVER_IS_ALIVE_REQUEST: sendDatagram(serverAddress, Datagrams.createIsAliveResponseDatagram(encryptor));
                                           break;
+                case SERVER_FILE_SHARE_PART: String fileName = messageSplit[0];
+                                             SharedFile file = sharedFiles.get(fileName);
+                                             if(file == null){
+                                                 file = new SharedFile(fileName, Integer.parseInt(messageSplit[2]), this, encryptor, serverAddress);
+                                             }
+                                             //in case of splitting because of DELIMITER...
+                                             String line = messageSplit[3];
+                                             for(int i=4; i<messageSplit.length; i++){
+                                                 line += "#"+messageSplit[i];
+                                             }
+                                             file.partReceived(Integer.parseInt(messageSplit[1]), line);
+                                             break;
+                case SERVER_FILE_SHARE_FINISH: SharedFile finishedFile = sharedFiles.get(messageSplit[0]);
+                                             if(finishedFile != null){
+                                                 finishedFile.finished();
+                                             }//else it's too late to request new 
+                                             break;
                 case CLIENT_UNICAST_MESSAGE:    user = findGroupUserbyInetAddr(source.getAddress());
                                             if(!(user != null && user.name.equals(userName) && user.ip.equals(hostAddress))){ //discard own messages
                                                 addMessage(new StoredMessage(data, user, false));
