@@ -58,7 +58,7 @@ public class ExampleController implements Initializable, IGroupListener {
         
         versionText.setText(versionText.getText()+ConfigLoader.VERSION);
         
-        docView.getEngine().load("https://github.com/Mytrin/UDPLib/javadoc/index.html"); //TODO doc
+        docView.getEngine().load("http://mytrin.github.io/UDPLib/"); //TODO doc
 
     }    
 
