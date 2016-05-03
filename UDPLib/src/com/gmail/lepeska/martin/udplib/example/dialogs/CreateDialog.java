@@ -1,6 +1,5 @@
 package com.gmail.lepeska.martin.udplib.example.dialogs;
 
-
 import com.gmail.lepeska.martin.udplib.AGroupNetwork;
 import com.gmail.lepeska.martin.udplib.server.ServerGroupNetwork;
 import java.net.UnknownHostException;
@@ -29,26 +28,31 @@ public class CreateDialog {
     
     static{
         DIALOG.setTitle("Create new network");
-        DIALOG.setHeaderText("* signs noncompulsatory, can be left blank");
+        DIALOG.setHeaderText("* signs are compulsatory");
         DIALOG.getDialogPane().setContent(EDIT_GRID);
         
         EDIT_GRID.setHgap(10);
         EDIT_GRID.setVgap(10);
         
-        EDIT_GRID.add(new Label("Host IP(*)"), 0, 0);
+        EDIT_GRID.add(new Label("Host IP"), 0, 0);
         EDIT_GRID.add(HOST_ADDRESS, 1, 0);
-        
-        EDIT_GRID.add(new Label("Group address(*)"), 0, 1);
+            HOST_ADDRESS.setPromptText("192.168.1.1");
+            
+        EDIT_GRID.add(new Label("Group address"), 0, 1);
         EDIT_GRID.add(GROUP_ADDRESS, 1, 1);
+            GROUP_ADDRESS.setPromptText("224.0.2.0 - 238.0.0.0");
         
-        EDIT_GRID.add(new Label("User name"), 0, 2);
+        EDIT_GRID.add(new Label("User name(*)"), 0, 2);
         EDIT_GRID.add(USERNAME, 1, 2);
+            USERNAME.setPromptText("Serverator");
         
-        EDIT_GRID.add(new Label("Password(*)"), 0, 3);
+        EDIT_GRID.add(new Label("Password"), 0, 3);
         EDIT_GRID.add(PASSWORD, 1, 3);
+            PASSWORD.setPromptText("123456bestpw");
         
-        EDIT_GRID.add(new Label("Port(*)"), 0, 4);
+        EDIT_GRID.add(new Label("Port"), 0, 4);
         EDIT_GRID.add(PORT, 1, 4);
+            PORT.setPromptText("1023-65535");
 
         DIALOG.getDialogPane().getButtonTypes().addAll(OK_BTN, EXIT_BTN);
         

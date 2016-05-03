@@ -27,20 +27,21 @@ public class DialogUtils {
             textArea.setMaxWidth(Double.MAX_VALUE);
             textArea.setMaxHeight(Double.MAX_VALUE);
             
+            
             String content = "";
             content = data.stream().map((line) -> line).reduce(content, String::concat);
             textArea.setText(content);
-            
-            GridPane expContent = new GridPane();
-            expContent.setMaxWidth(Double.MAX_VALUE);
-            expContent.add(new Label("Content of file "+file.getName()), 0, 0);
-            expContent.add(textArea, 0, 1);
+
+            GridPane grid = new GridPane();
+            grid.setMaxWidth(Double.MAX_VALUE);
+            grid.add(new Label("Content of file "+file.getName()), 0, 0);
+            grid.add(textArea, 0, 1);
             
             Alert alert = new Alert(Alert.AlertType.INFORMATION);
             alert.setTitle(Example.NAME);
-            alert.setHeaderText(file.getName());                    
-            alert.getDialogPane().setExpandableContent(expContent);
-
+            alert.setHeaderText(file.getName());
+            alert.getDialogPane().setContent(grid);
+            
             alert.showAndWait();
         } catch (Exception e) {
             showErrorAlert(e);

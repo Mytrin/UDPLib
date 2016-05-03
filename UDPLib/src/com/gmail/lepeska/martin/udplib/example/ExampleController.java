@@ -119,7 +119,7 @@ public class ExampleController implements Initializable, IGroupListener {
                 network = null;
             }
             JoinDialog.preset(selected.server.getHostName(), ""+selected.port);
-            JoinDialog.show();
+            connect(event);
         }
     }
 
@@ -224,7 +224,6 @@ public class ExampleController implements Initializable, IGroupListener {
 
     @Override
     public void fileReceived(File receivedFile) {
-        System.err.println("Shown");
         fileView.getItems().add(receivedFile);
     }
     

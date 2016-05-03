@@ -137,7 +137,7 @@ public class GroupServerThread extends AGroupThread{
                 socket.receive(packet);
                 
                 boolean isExploreDatagram = Datagrams.isExploreDatagram(Datagrams.bytesToString(buf));
-                    System.err.println(Datagrams.bytesToString(buf));
+
                 if(isExploreDatagram){
                     sendDatagram(packet.getAddress(), Datagrams.createExploreResponse(groupPassword != null));
                 }else{

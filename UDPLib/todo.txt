@@ -1,3 +1,5 @@
+ASAP: fix image sending
+
 List of features to implement, after "cooldown":
 
 1.  Consider identifying users by mac_address.
