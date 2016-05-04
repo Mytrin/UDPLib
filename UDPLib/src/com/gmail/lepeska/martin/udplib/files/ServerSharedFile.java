@@ -7,6 +7,7 @@ import com.gmail.lepeska.martin.udplib.util.Encryptor;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -18,7 +19,9 @@ import java.util.logging.Logger;
  * @author Martin Lepeška
  */
 public class ServerSharedFile implements Runnable{
-
+    /**List of supported text files, if your format is not listed here, you can change it*/
+    public static String TEXT_FILES = ".*\\.(txt|pdf|xml|json|js|html|htm|php|java|css|doc|docx|odt|xls|csv|py|lua|svg|conf|log|ini|yaml)";
+    
     private final ArrayList<String> parts = new ArrayList<>();
     
     private final File fileToShare;
@@ -71,9 +74,8 @@ public class ServerSharedFile implements Runnable{
     @Override
     public void run() {
         try{
-            Files.lines(fileToShare.toPath()).forEach((String t) -> {parts.add(t+"\n");});
-            validate();
-            
+            readFile();
+
             byte[] datagram;
             
             for(int i = 0; i < parts.size(); i++){
@@ -98,6 +100,18 @@ public class ServerSharedFile implements Runnable{
         }catch(IOException ex){
             if(listener != null) listener.onFail(fileToShare, ex);
             throw new UDPLibException("File sharing problem: ", ex);
+        }
+    }
+    
+    private void readFile() throws IOException, UDPLibException{
+        Path path = fileToShare.toPath();
+        
+        if(fileToShare.getName().matches(TEXT_FILES)){
+            Files.lines(path).forEach((String t) -> {parts.add(t+"\n");});
+        
+            validate();
+        }else{
+            throw new UDPLibException("Cannot send binary file");
         }
     }
     

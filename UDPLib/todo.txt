@@ -1,6 +1,5 @@
-ASAP: fix image sending
-
 List of features to implement, after "cooldown":
 
-1.  Consider identifying users by mac_address.
-2.  Direct client->client messages trough server
+1.  Direct client->client messages trough server
+2.  Consider identifying users by mac_address.
+3.  Binary file sharing support
