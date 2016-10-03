@@ -1,28 +1,27 @@
 package com.gmail.lepeska.martin.udplib.files;
 
-import com.gmail.lepeska.martin.udplib.Datagrams;
 import com.gmail.lepeska.martin.udplib.UDPLibException;
 import com.gmail.lepeska.martin.udplib.client.GroupClientThread;
 import com.gmail.lepeska.martin.udplib.util.Encryptor;
 import java.io.File;
+import java.io.IOException;
 import java.net.InetAddress;
-import java.nio.file.Files;
-import java.nio.file.Paths;
-import java.util.Arrays;
+
 
 /**
  *
  * SharedFile is client representation of file shared at network.
  * 
  * @author Martin Lepeška
+ * 
+ * @param <T> type of part data
  */
-public class SharedFile {
-    private final String name;
-    private final String[] parts;
-    private final GroupClientThread client;
-    private final Encryptor encryptor;
+public abstract class ASharedFile<T> {
+    protected final String name;
     
-    private final InetAddress server;
+    protected final GroupClientThread client;
+    protected final Encryptor encryptor;
+    protected final InetAddress server;
     
     private boolean isFinished = false;
     
@@ -30,14 +29,12 @@ public class SharedFile {
     /**
      * 
      * @param name Unique name of file
-     * @param parts Count of fileParts to receive
      * @param client Thread with socket, which can SharedFile use for CLIENT_FILE_SHARE_PART_REQUEST
      * @param encryptor object responsible for encrypting requests
      * @param server server ip
      */
-    public SharedFile(String name, int parts, GroupClientThread client, Encryptor encryptor, InetAddress server){
+    public ASharedFile(String name, GroupClientThread client, Encryptor encryptor, InetAddress server){
         this.name = name;
-        this.parts = new String[parts];
         this.client = client;
         this.encryptor = encryptor;
         this.server = server;
@@ -48,28 +45,34 @@ public class SharedFile {
      * @param index index of given part in array
      * @param content data
      */
-    public void partReceived(int index, String content){
+    public void partReceived(int index, T content){
         if(!isFinished){
-            parts[index] = content;
+            setPart(index, content);
         }
     }
+    
+    /**
+     * Saves received data to temporary structure, before they are written to file
+     * @param index place of part
+     * @param content  part data
+     */
+    public abstract void setPart(int index, T content);
     
     /**
      * Called from client thread when received SERVER_FILE_SHARE_FINISH
      */
     public void finished(){
         if(!isFinished){
-            for(int i=0; i < parts.length; i++){
-                if(parts[i] == null){
-                    byte[] datagram = Datagrams.createClientFileSharePartRequest(encryptor, name, i);
-                    client.sendDatagram(server, datagram);
-                    break;
-                }
-            }
-            isFinished = true;
+            isFinished = finishOrRequest();
             createFile();
         }
     }
+    
+    /**
+     * In case some parts are missing, request server for resending them
+     * @return  true, if all parts have been gathered
+     */
+    protected abstract boolean finishOrRequest();
     
     /**
      * Creates file from complete parts
@@ -77,12 +80,18 @@ public class SharedFile {
     private void createFile(){
         try{
             createdFile = File.createTempFile(name, ".tmp"); 
-            Files.write(Paths.get(createdFile.getPath()), Arrays.asList(parts));
+            fillFile(createdFile);
             client.receiveFile(createdFile);
         }catch(Exception e){
             throw new UDPLibException("Cannot create temporary file:", e);
         }
-
     }
+    
+    /**
+     * Writes received data into shared file
+     * @param createdFile file with name received from Server
+     * @throws java.io.IOException
+     */
+    protected abstract void fillFile(File createdFile)throws IOException;
     
 }

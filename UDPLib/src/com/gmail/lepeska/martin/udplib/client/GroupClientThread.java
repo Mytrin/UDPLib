@@ -7,7 +7,8 @@ import com.gmail.lepeska.martin.udplib.util.Encryptor;
 import com.gmail.lepeska.martin.udplib.AGroupThread;
 import com.gmail.lepeska.martin.udplib.StoredMessage;
 import com.gmail.lepeska.martin.udplib.UDPLibException;
-import com.gmail.lepeska.martin.udplib.files.SharedFile;
+import com.gmail.lepeska.martin.udplib.files.ASharedFile;
+import com.gmail.lepeska.martin.udplib.files.SharedTextFile;
 import java.io.File;
 import java.io.IOException;
 import java.net.DatagramPacket;
@@ -32,7 +33,7 @@ import java.util.logging.Logger;
 public class GroupClientThread  extends AGroupThread{
     
     /**Files received in group*/
-    private final HashMap<String, SharedFile> sharedFiles = new HashMap<>();
+    private final HashMap<String, ASharedFile> sharedFiles = new HashMap<>();
     
     /**Users in group*/
     private final ArrayList<GroupUser> groupUsers= new ArrayList<>();
@@ -197,9 +198,9 @@ public class GroupClientThread  extends AGroupThread{
                 case SERVER_IS_ALIVE_REQUEST: sendDatagram(serverAddress, Datagrams.createIsAliveResponseDatagram(encryptor));
                                           break;
                 case SERVER_FILE_SHARE_PART: String fileName = messageSplit[0];
-                                             SharedFile file = sharedFiles.get(fileName);
+                                             ASharedFile file = sharedFiles.get(fileName);
                                              if(file == null){
-                                                 file = new SharedFile(fileName, Integer.parseInt(messageSplit[2]), this, encryptor, serverAddress);
+                                                 file = new SharedTextFile(fileName, Integer.parseInt(messageSplit[2]), this, encryptor, serverAddress);
                                                  sharedFiles.put(fileName, file);
                                              }
                                              //in case of splitting because of DELIMITER...
@@ -210,7 +211,7 @@ public class GroupClientThread  extends AGroupThread{
                                              file.partReceived(Integer.parseInt(messageSplit[1]), line);
                                              System.out.println("part "+fileName);
                                              break;
-                case SERVER_FILE_SHARE_FINISH: SharedFile finishedFile = sharedFiles.get(messageSplit[0]);
+                case SERVER_FILE_SHARE_FINISH: ASharedFile finishedFile = sharedFiles.get(messageSplit[0]);
                                              if(finishedFile != null){
                                                  finishedFile.finished();
                                              }else{

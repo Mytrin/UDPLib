@@ -61,7 +61,7 @@ public class Encryptor {
      * @param decrypted bytes with message to encode
      * @return encrypt message
      */
-    public synchronized byte[] encrypt(byte[] decrypted){ //Forgot use synchronized and it ocasionally returned trash
+    public synchronized byte[] encrypt(byte[] decrypted){ //Forgot to use synchronized and it ocasionally returned trash
          if(aesKey != null){
              try{
                 cipher.init(Cipher.ENCRYPT_MODE, aesKey);

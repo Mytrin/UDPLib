@@ -26,7 +26,7 @@ public class Datagrams {
     /**Special character, which marks certain parts of message*/
     public static final String DELIMITER = "#";
     
-    public static final String ENCODING = "UTF-8";
+    public static final String ENCODING = "UTF-8";//TODO configurable
 
     static{
         DATAGRAM_HEADER = stringToBytes(DATAGRAM_HEADER_STRING);

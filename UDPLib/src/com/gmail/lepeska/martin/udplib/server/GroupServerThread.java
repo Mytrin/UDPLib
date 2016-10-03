@@ -9,7 +9,8 @@ import com.gmail.lepeska.martin.udplib.StoredMessage;
 import com.gmail.lepeska.martin.udplib.UDPLibException;
 import com.gmail.lepeska.martin.udplib.client.GroupUser;
 import com.gmail.lepeska.martin.udplib.files.IServerShareListener;
-import com.gmail.lepeska.martin.udplib.files.ServerSharedFile;
+import com.gmail.lepeska.martin.udplib.files.AServerSharedFile;
+import com.gmail.lepeska.martin.udplib.files.ServerSharedTextFile;
 import java.io.File;
 import java.net.DatagramPacket;
 import java.net.Inet6Address;
@@ -39,7 +40,7 @@ public class GroupServerThread extends AGroupThread{
     /**This thread maintains info about group network*/
     private final ServerGroupInfoThread refreshThread;
 
-    private final HashMap<String, ServerSharedFile> sharedFiles = new HashMap<>();
+    private final HashMap<String, AServerSharedFile> sharedFiles = new HashMap<>();
     
     /**
      * Creates new GroupServerThread bound on interface of given hostAddress with given password and group address.
@@ -253,7 +254,7 @@ public class GroupServerThread extends AGroupThread{
      * @param listener object to notify about progress
      */
     public void shareFile(File file, String name, IServerShareListener listener){
-        ServerSharedFile serverFile = new ServerSharedFile(file, name, this, encryptor, refreshThread.getDeadTime(), listener);
+        AServerSharedFile serverFile = new ServerSharedTextFile(file, name, this, encryptor, refreshThread.getDeadTime(), listener);
         sharedFiles.put(name, serverFile);
         Thread sharing = new Thread(serverFile);
         sharing.setDaemon(true);
@@ -286,7 +287,7 @@ public class GroupServerThread extends AGroupThread{
             case CLIENT_MULTICAST_MESSAGE:  user = findGroupUserbyInetAddr(source.getAddress());
                                             addMessage(new StoredMessage(data, user, true));
                                             break;
-            case CLIENT_FILE_SHARE_PART_REQUEST: ServerSharedFile requested = sharedFiles.get(messageSplit[0]);
+            case CLIENT_FILE_SHARE_PART_REQUEST: AServerSharedFile requested = sharedFiles.get(messageSplit[0]);
                                                     if(requested != null) requested.partRequest(Integer.parseInt(messageSplit[1]));
                                                     break;
         }

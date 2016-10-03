@@ -28,7 +28,7 @@ public final class ConfigLoader {
      * Loads and sets new configuration from "udplib_config.xml".
      * @return true, if there was no exception, when parsing xml
      */
-    public synchronized static final boolean loadConfig(){
+    public synchronized static final boolean loadConfig() {
         try{
             loadConfig(new File("udplib_config.xml"));
         }catch(Exception e){

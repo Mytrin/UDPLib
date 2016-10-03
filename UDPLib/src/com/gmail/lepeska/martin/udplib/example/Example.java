@@ -19,7 +19,8 @@ public class Example extends Application {
             primaryStage.setTitle(NAME);
             primaryStage.show();
         }catch(Exception e){
-            System.err.println("GUI xml not found! "+e);
+            System.err.println("GUI xml not found!");
+            e.printStackTrace();
         }
     }
 
