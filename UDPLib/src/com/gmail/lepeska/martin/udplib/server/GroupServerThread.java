@@ -142,14 +142,13 @@ public class GroupServerThread extends AGroupThread{
                 if(isExploreDatagram){
                     sendDatagram(packet.getAddress(), Datagrams.createExploreResponse(groupPassword != null));
                 }else{
-                    String data = Datagrams.unpack(buf, encryptor, packet);
-                    DatagramTypes type = Datagrams.getDatagramType(data);
+                    DatagramTypes type = Datagrams.getDatagramType(buf);
 
                     if(type != DatagramTypes.TRASH){
-                        dealWithPacket(packet, type, Datagrams.unpack2(data));
+                        dealWithPacket(packet, type, Datagrams.unpack(buf, encryptor, packet));
                     }else{
                         //trash    
-                        Logger.getLogger(ConfigLoader.class.getName()).log(Level.WARNING, "Trash received: {0} -> {1} ", new String[]{Datagrams.bytesToString(buf), data});
+                        Logger.getLogger(ConfigLoader.class.getName()).log(Level.WARNING, "Trash received: {0} -> {1} ", new String[]{Datagrams.bytesToString(buf), Datagrams.unpack(buf, encryptor, packet)});
                     }
                 }
                 
@@ -282,10 +281,10 @@ public class GroupServerThread extends AGroupThread{
                                             if(user != null) user.pingReceived();
                                             break;
             case CLIENT_UNICAST_MESSAGE:    user = findGroupUserbyInetAddr(source.getAddress());
-                                            addMessage(new StoredMessage(data, user, false));
+                                            addMessage(new StoredMessage(Datagrams.getMessageFromDatagram(data), user, false));
                                             break;
             case CLIENT_MULTICAST_MESSAGE:  user = findGroupUserbyInetAddr(source.getAddress());
-                                            addMessage(new StoredMessage(data, user, true));
+                                            addMessage(new StoredMessage(Datagrams.getMessageFromDatagram(data), user, true));
                                             break;
             case CLIENT_FILE_SHARE_PART_REQUEST: AServerSharedFile requested = sharedFiles.get(messageSplit[0]);
                                                     if(requested != null) requested.partRequest(Integer.parseInt(messageSplit[1]));

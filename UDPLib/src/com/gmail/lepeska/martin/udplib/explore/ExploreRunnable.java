@@ -95,17 +95,12 @@ public class ExploreRunnable implements Runnable{
                 try{
                     socket.receive(response);
                 
-                    String respStr = new String(responseData).trim();
-                    System.err.println("Received: "+respStr);
-                    if(respStr.startsWith(Datagrams.DATAGRAM_HEADER_STRING)){
-                        String unpacked = respStr.replace(Datagrams.DATAGRAM_HEADER_STRING, "");
-                        DatagramTypes type = Datagrams.getDatagramType(unpacked);
+                    if(Datagrams.getDatagramType(responseData) == DatagramTypes.SERVER_EXPLORE_RESPONSE){
+                        String respStr = Datagrams.unpackNotEncrypted(responseData, response);
                         
-                        if(type == DatagramTypes.SERVER_EXPLORE_RESPONSE){
-                            AvailableServerRecord record = new AvailableServerRecord(groupAddress, port, response.getAddress(), unpacked.endsWith("1"));
-                            if(listener != null){
-                                listener.receive(record);
-                            }
+                        AvailableServerRecord record = new AvailableServerRecord(groupAddress, port, response.getAddress(), respStr.endsWith("1"));
+                        if(listener != null){
+                            listener.receive(record);
                         }
                     }
                     

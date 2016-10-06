@@ -24,6 +24,9 @@ public class Encryptor {
     /**Key containing password, needs to be 16 characters long(128bit)*/
     private final Key aesKey;
     
+    /**Dummy encryptor, which returns given bytes as encoded*/
+    public static final Encryptor DUMMY = new Encryptor();
+    
     /**
      * Dummy encryptor, which returns given bytes as encoded
      */

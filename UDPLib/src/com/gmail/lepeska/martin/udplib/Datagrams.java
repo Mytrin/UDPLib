@@ -46,18 +46,18 @@ public class Datagrams {
      */
     public static byte[] createDatagram(Encryptor encryptor, String message, DatagramTypes messageType){
         try{
-            //I know it's ugly, just haven't find better way so far...
-            String dataToEncrypt = messageType.index+DELIMITER+message;
+            //I know this is ugly, just haven't find better way so far...
+            String dataToEncrypt = message+DELIMITER;
             
             while(dataToEncrypt.getBytes(ENCODING).length%16 != 0){
                 dataToEncrypt += '\0';
             }
             byte[] encodedMessage = encryptor.encrypt(dataToEncrypt.getBytes(ENCODING));
 
-            byte[] finalBytes = new byte[DATAGRAM_HEADER.length+encodedMessage.length];
-            
+            byte[] finalBytes = new byte[DATAGRAM_HEADER.length+1+encodedMessage.length];
             System.arraycopy(DATAGRAM_HEADER, 0, finalBytes, 0, DATAGRAM_HEADER.length);
-            System.arraycopy(encodedMessage, 0, finalBytes, DATAGRAM_HEADER.length, encodedMessage.length);
+            finalBytes[DATAGRAM_HEADER.length] = (byte)messageType.index;
+            System.arraycopy(encodedMessage, 0, finalBytes, DATAGRAM_HEADER.length+1, encodedMessage.length);
         
             return finalBytes;
         }catch(Exception e){
@@ -84,6 +84,15 @@ public class Datagrams {
         }
                 
         return createDatagram(encryptor, message, type);
+    }
+    
+    /**
+     * §Return message part from |messageWith##whitespace|
+     * @param receivedMsg unpacked message datagram
+     * @return message from datagram without DELIMITERS
+     */
+    public static String getMessageFromDatagram(String receivedMsg){
+        return receivedMsg.substring(0, receivedMsg.lastIndexOf(DELIMITER));
     }
     
     /**
@@ -130,7 +139,7 @@ public class Datagrams {
      * @return (not encrypted) client request for server to send info about themselves
      */
     public static byte[] createExploreRequest(){
-        return stringToBytes(DATAGRAM_HEADER_STRING+DatagramTypes.CLIENT_EXPLORE_REQUEST.index);
+        return createDatagram(Encryptor.DUMMY, "", DatagramTypes.CLIENT_EXPLORE_REQUEST);
     }
     
     /**
@@ -139,7 +148,7 @@ public class Datagrams {
      * @return (not encrypted) Info about server for exploring client
      */
     public static byte[] createExploreResponse(boolean requiresPassword){
-        return stringToBytes(DATAGRAM_HEADER_STRING+DatagramTypes.SERVER_EXPLORE_RESPONSE.index+DELIMITER+(requiresPassword?"1":"0"));
+        return createDatagram(Encryptor.DUMMY, (requiresPassword?"1":"0"), DatagramTypes.SERVER_EXPLORE_RESPONSE);
     }
     
     /**
@@ -210,28 +219,8 @@ public class Datagrams {
     }
     
     /**
-     * @param message Data of datagram returned from unpack()
-     * @return DatagramType of this datagram or TRASH
-     */
-    public static DatagramTypes getDatagramType(String message) {
-        int index = message.indexOf(DELIMITER);
-        String type;
-        if(index == -1){
-            type = message;
-        }else{
-            type = ""+message.substring(0, index);
-        }
-        
-        if(type.matches("\\d*")){
-             return DatagramTypes.getTypeByIndex(Integer.parseInt(type));
-        }else{
-            return DatagramTypes.TRASH;
-        }
-    }
-    
-    /**
      * @param message recently received data, which might not be encrypted
-     * @return DatagramType of this datagram or TRASH
+     * @return true if DatagramType of this datagram is CLIENT_EXPLORE_REQUEST
      */
     public static boolean isExploreDatagram(String message) {
         return message.trim().equals(DATAGRAM_HEADER_STRING+DatagramTypes.CLIENT_EXPLORE_REQUEST.index);
@@ -244,19 +233,36 @@ public class Datagrams {
      * @return decrypted datagram data without UDPLib header containing datagram type on 0 index
      */
     public static String unpack(byte[] data, Encryptor encryptor, DatagramPacket source){
-        byte[] toDecrypt = new byte[source.getLength() - DATAGRAM_HEADER.length];
-        System.arraycopy(data, DATAGRAM_HEADER.length, toDecrypt, 0, toDecrypt.length);
+        byte[] toDecrypt = new byte[source.getLength() - DATAGRAM_HEADER.length -1];
+        System.arraycopy(data, DATAGRAM_HEADER.length+1, toDecrypt, 0, toDecrypt.length);
         
         return bytesToString(encryptor.decrypt(toDecrypt));
     }
     
     /**
-     * Follows after unpack(), removes part informing about type of datagram
-     * @param data previously unpacked data 
-     * @return data without type of datagram
+     * @param data received datagram data
+     * @return The type of UDPLib datagram or TRASH
      */
-    public static String unpack2(String data){
-        return data.trim().substring(data.indexOf(DELIMITER)+1);
+    public static DatagramTypes getDatagramType(byte[] data){
+        if(data.length < DATAGRAM_HEADER.length+1) return DatagramTypes.TRASH;
+        
+        for(int i=0; i < DATAGRAM_HEADER.length; i++){
+            if(data[i] != DATAGRAM_HEADER[i]) return DatagramTypes.TRASH;
+        }
+        
+        return DatagramTypes.getTypeByIndex(data[DATAGRAM_HEADER.length]);
+    }
+    
+    /**
+     * @param data received datagram data
+     * @param source packet with information about data length
+     * @return datagram data without header
+     */
+    public static String unpackNotEncrypted(byte[] data, DatagramPacket source) {
+       byte[] dataWithoutHeader = new byte[source.getLength()  - DATAGRAM_HEADER.length -1];
+       System.arraycopy(data, DATAGRAM_HEADER.length+1, dataWithoutHeader, 0, dataWithoutHeader.length);
+       
+       return bytesToString(dataWithoutHeader);
     }
     
     /**
