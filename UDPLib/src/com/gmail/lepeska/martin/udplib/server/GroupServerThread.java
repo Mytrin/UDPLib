@@ -10,6 +10,7 @@ import com.gmail.lepeska.martin.udplib.UDPLibException;
 import com.gmail.lepeska.martin.udplib.client.GroupUser;
 import com.gmail.lepeska.martin.udplib.files.IServerShareListener;
 import com.gmail.lepeska.martin.udplib.files.AServerSharedFile;
+import com.gmail.lepeska.martin.udplib.files.ServerSharedBinaryFile;
 import com.gmail.lepeska.martin.udplib.files.ServerSharedTextFile;
 import java.io.File;
 import java.net.DatagramPacket;
@@ -145,10 +146,10 @@ public class GroupServerThread extends AGroupThread{
                     DatagramTypes type = Datagrams.getDatagramType(buf);
 
                     if(type != DatagramTypes.TRASH){
-                        dealWithPacket(packet, type, Datagrams.unpack(buf, encryptor, packet));
+                        dealWithPacket(packet, type, Datagrams.unpack(encryptor, packet));
                     }else{
                         //trash    
-                        Logger.getLogger(ConfigLoader.class.getName()).log(Level.WARNING, "Trash received: {0} -> {1} ", new String[]{Datagrams.bytesToString(buf), Datagrams.unpack(buf, encryptor, packet)});
+                        Logger.getLogger(ConfigLoader.class.getName()).log(Level.WARNING, "Trash received: {0} -> {1} ", new String[]{Datagrams.bytesToString(buf), Datagrams.unpack(encryptor, packet)});
                     }
                 }
                 
@@ -253,7 +254,14 @@ public class GroupServerThread extends AGroupThread{
      * @param listener object to notify about progress
      */
     public void shareFile(File file, String name, IServerShareListener listener){
-        AServerSharedFile serverFile = new ServerSharedTextFile(file, name, this, encryptor, refreshThread.getDeadTime(), listener);
+        AServerSharedFile serverFile;
+        
+        if(file.getName().matches(ServerSharedTextFile.TEXT_FILES)){
+            serverFile = new ServerSharedTextFile(file, name, this, encryptor, refreshThread.getDeadTime(), listener);
+        }else{
+            serverFile = new ServerSharedBinaryFile(file, name, this, encryptor, refreshThread.getDeadTime(), listener);
+        }
+        
         sharedFiles.put(name, serverFile);
         Thread sharing = new Thread(serverFile);
         sharing.setDaemon(true);

@@ -8,6 +8,8 @@ import com.gmail.lepeska.martin.udplib.AGroupThread;
 import com.gmail.lepeska.martin.udplib.StoredMessage;
 import com.gmail.lepeska.martin.udplib.UDPLibException;
 import com.gmail.lepeska.martin.udplib.files.ASharedFile;
+import com.gmail.lepeska.martin.udplib.files.ServerSharedTextFile;
+import com.gmail.lepeska.martin.udplib.files.SharedBinaryFile;
 import com.gmail.lepeska.martin.udplib.files.SharedTextFile;
 import java.io.File;
 import java.io.IOException;
@@ -18,7 +20,6 @@ import java.net.NetworkInterface;
 import java.net.SocketTimeoutException;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedList;
@@ -90,7 +91,7 @@ public class GroupClientThread  extends AGroupThread{
 
             
             if(Datagrams.getDatagramType(responseData) == DatagramTypes.SERVER_ACCEPT_CLIENT_RESPONSE){
-                String responseStr = Datagrams.unpack(responseData, encryptor, response);
+                String responseStr = Datagrams.unpack(encryptor, response);
                 String[] responseSplit = responseStr.split(Datagrams.DELIMITER);
                 
                 if(responseSplit.length < 3){
@@ -149,7 +150,7 @@ public class GroupClientThread  extends AGroupThread{
                 DatagramTypes type = Datagrams.getDatagramType(buf);
                 
                 if(type != DatagramTypes.TRASH){
-                    String data = Datagrams.unpack(buf, encryptor, packet);
+                    String data = Datagrams.unpack(encryptor, packet);
                     dealWithPacket(packet, type, data);
                 }else{
                     //trash    
@@ -166,10 +167,16 @@ public class GroupClientThread  extends AGroupThread{
     
     @Override
     protected void dealWithPacket(DatagramPacket source, DatagramTypes type, String data) {       
-        String[] messageSplit = data.split(Datagrams.DELIMITER);
+        String[] messageSplit;
+        
+        if(type.isString){
+            messageSplit = data.split(Datagrams.DELIMITER);
+        }else{
+            messageSplit = new String[0];
+        }
+        
         GroupUser user;
         try{
-            System.out.println(Arrays.toString(messageSplit));
             switch(type){
                 case SERVER_CLIENTS_INFO: user = findGroupUserbyInetAddr(InetAddress.getByName((messageSplit[1])));
                                       if(user != null){
@@ -205,14 +212,33 @@ public class GroupClientThread  extends AGroupThread{
                                                  file = new SharedTextFile(fileName, Integer.parseInt(messageSplit[2]), this, encryptor, serverAddress);
                                                  sharedFiles.put(fileName, file);
                                              }
-                                             //in case of splitting because of DELIMITER...
-                                             String line = messageSplit[3];
-                                             for(int i=4; i<messageSplit.length; i++){
-                                                 line += "#"+messageSplit[i];
-                                             }
-                                             file.partReceived(Integer.parseInt(messageSplit[1]), line);
-                                             System.out.println("part "+fileName);
-                                             break;
+                                                     //in case of splitting because of DELIMITER...
+                                            String line = messageSplit[3];
+                                            for(int i=4; i<messageSplit.length; i++){
+                                                line += "#"+messageSplit[i];
+                                            }
+                                            file.setPart(Integer.parseInt(messageSplit[1]), line);
+                                            break;
+                case SERVER_BINARY_FILE_SHARE_PART: 
+                                            byte[] datagramDecrypted = encryptor.decrypt(Datagrams.unpacWithoutDecrypt(source));
+        
+                                            int headerSize = ConfigLoader.getInt("binary-file-header-size");
+                                            byte[] datagramHeader = new byte[headerSize];
+                                            System.arraycopy(datagramDecrypted, 0, datagramHeader, 0, headerSize);
+
+                                            byte[] datagramData = new byte[datagramDecrypted.length - headerSize];
+                                            System.arraycopy(datagramDecrypted, headerSize, datagramData, 0, datagramData.length);
+        
+                                            messageSplit = Datagrams.bytesToString(datagramHeader).split(Datagrams.DELIMITER);
+                                            ASharedFile binaryFile = sharedFiles.get(messageSplit[0]);
+                                            if(binaryFile == null){
+                                                binaryFile = new SharedBinaryFile(messageSplit[0], Integer.parseInt(messageSplit[2]), this, encryptor, serverAddress);
+                                                sharedFiles.put(messageSplit[0], binaryFile);
+                                            }
+                                             
+                                            binaryFile.setPart(Integer.parseInt(messageSplit[1]), datagramData);
+                                            
+                                            break;
                 case SERVER_FILE_SHARE_FINISH: ASharedFile finishedFile = sharedFiles.get(messageSplit[0]);
                                              if(finishedFile != null){
                                                  finishedFile.finished();

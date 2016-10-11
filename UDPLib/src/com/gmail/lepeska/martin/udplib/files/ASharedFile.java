@@ -5,6 +5,7 @@ import com.gmail.lepeska.martin.udplib.client.GroupClientThread;
 import com.gmail.lepeska.martin.udplib.util.Encryptor;
 import java.io.File;
 import java.io.IOException;
+import java.net.DatagramPacket;
 import java.net.InetAddress;
 
 
@@ -39,18 +40,7 @@ public abstract class ASharedFile<T> {
         this.encryptor = encryptor;
         this.server = server;
     }
-    
-    /**
-     * Called from client thread to append file part
-     * @param index index of given part in array
-     * @param content data
-     */
-    public void partReceived(int index, T content){
-        if(!isFinished){
-            setPart(index, content);
-        }
-    }
-    
+        
     /**
      * Saves received data to temporary structure, before they are written to file
      * @param index place of part

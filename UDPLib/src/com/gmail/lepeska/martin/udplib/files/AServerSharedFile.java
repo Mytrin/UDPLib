@@ -26,9 +26,6 @@ public abstract class AServerSharedFile implements Runnable{
     /**Flag, that thread should not finish this cycle*/
     protected volatile boolean wasRequest = true;
     
-    /**Time which thread waits between sending datagrams, so it does not occupy socket too long*/
-    protected static final long WAITING_TIME = 10;
-    
     /**
      * @param fileToShare Data to share
      * @param name Unique String ID, under which will be file accessible at AGroupNetwork class

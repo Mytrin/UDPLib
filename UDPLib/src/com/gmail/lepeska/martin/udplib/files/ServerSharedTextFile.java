@@ -3,6 +3,7 @@ package com.gmail.lepeska.martin.udplib.files;
 import com.gmail.lepeska.martin.udplib.Datagrams;
 import com.gmail.lepeska.martin.udplib.UDPLibException;
 import com.gmail.lepeska.martin.udplib.server.GroupServerThread;
+import com.gmail.lepeska.martin.udplib.util.ConfigLoader;
 import com.gmail.lepeska.martin.udplib.util.Encryptor;
 import java.io.File;
 import java.io.IOException;
@@ -22,7 +23,7 @@ public class ServerSharedTextFile extends AServerSharedFile {
      * List of supported text files, if your format is not listed here, you can
      * change it
      */
-    public static String TEXT_FILES = ".*\\.(txt|pdf|xml|json|js|html|htm|php|java|css|doc|docx|odt|xls|csv|py|lua|svg|conf|log|ini|yaml)";
+    public static String TEXT_FILES = ".*\\.(txt|xml|json|js|html|htm|php|java|css|doc|docx|odt|xls|csv|py|lua|svg|conf|log|ini|yaml)";
 
     private final ArrayList<String> parts = new ArrayList<>();
 
@@ -79,10 +80,12 @@ public class ServerSharedTextFile extends AServerSharedFile {
     protected void sendPartDatagrams() throws InterruptedException{
         byte[] datagram;
             
+        int waitingTime = ConfigLoader.getInt("file-time");
+        
         for(int i = 0; i < parts.size(); i++){
             datagram = Datagrams.createServerFileSharePart(encryptor, name, parts.get(i), i, parts.size());
             groupServer.sendMulticastDatagram(datagram);
-            Thread.sleep(WAITING_TIME);
+            Thread.sleep(waitingTime);
         }
     }
     

@@ -3,6 +3,7 @@ package com.gmail.lepeska.martin.udplib;
 import com.gmail.lepeska.martin.udplib.util.Encryptor;
 import com.gmail.lepeska.martin.udplib.client.GroupUser;
 import com.gmail.lepeska.martin.udplib.server.GroupServerThread;
+import com.gmail.lepeska.martin.udplib.util.ConfigLoader;
 import java.net.DatagramPacket;
 import java.net.InetAddress;
 
@@ -35,7 +36,7 @@ public class Datagrams {
     private Datagrams() {}
     
     /**
-     * Creates UDPLib message datagram with given type. Private because of safety(messageType shouldn't be exposed)
+     * Creates UDPLib message datagram with given type.
      * 
      * HEAD(N B)TYPE(1 B)#MESSAGE
      * 
@@ -194,6 +195,39 @@ public class Datagrams {
     }
     
     /**
+     * HEAD(N B)TYPE#FILENAME#INDEX#TOTAL#PART#
+     * @param encryptor Encryptor of sending thread
+     * @param fileName - String, under which should be the SharedFile stored in Map
+     * @param filePart - data of file part to send
+     * @param index - index of this part in array of SharedFile
+     * @param total - count of all parts, which were or will be sent, so client can initialize array of SharedFile
+     * @return data of UDPLib SERVER_FILE_SHARE_PART datagram
+     */
+    public static byte[] createServerBinaryFileSharePart(Encryptor encryptor, String fileName, byte[] filePart, int index, int total){
+        String header = fileName+DELIMITER+index+DELIMITER+total+DELIMITER;
+        
+        //the problem with String header a byte[] data is how to recognize where which part ends
+        //The solution I came up with is CLIENT/SERVER configured size for header
+        int headerSize = ConfigLoader.getInt("binary-file-header-size");
+        byte[] headerData = stringToBytes(header);
+        
+        if(headerData.length > headerSize) throw new UDPLibException("File datagram header size too long!");
+        
+        byte[] data = new byte[headerSize + filePart.length];
+        System.arraycopy(headerData, 0, data, 0, headerData.length);
+        System.arraycopy(filePart, 0, data, headerSize, filePart.length);
+        
+        byte[] encryptedData = encryptor.encrypt(data);
+        
+        byte[] datagram = new byte[DATAGRAM_HEADER.length + 1 + encryptedData.length];
+        System.arraycopy(DATAGRAM_HEADER, 0, datagram, 0, DATAGRAM_HEADER.length);
+        datagram[DATAGRAM_HEADER.length] = (byte)DatagramTypes.SERVER_BINARY_FILE_SHARE_PART.index;
+        System.arraycopy(encryptedData, 0, datagram, DATAGRAM_HEADER.length+1, encryptedData.length);
+        
+        return datagram;
+    }
+    
+    /**
      * HEAD(N B)TYPE#FILENAME#
      * @param encryptor Encryptor of sending thread
      * @param fileName - String, under which should be the SharedFile stored in Map
@@ -227,16 +261,26 @@ public class Datagrams {
     }
     
     /**
-     * @param data received data
      * @param encryptor class responsible for decrypting
      * @param source packet with information about data length
-     * @return decrypted datagram data without UDPLib header containing datagram type on 0 index
+     * @return decrypted datagram data without UDPLib header
      */
-    public static String unpack(byte[] data, Encryptor encryptor, DatagramPacket source){
+    public static String unpack(Encryptor encryptor, DatagramPacket source){
         byte[] toDecrypt = new byte[source.getLength() - DATAGRAM_HEADER.length -1];
-        System.arraycopy(data, DATAGRAM_HEADER.length+1, toDecrypt, 0, toDecrypt.length);
+        System.arraycopy(source.getData(), DATAGRAM_HEADER.length+1, toDecrypt, 0, toDecrypt.length);
         
         return bytesToString(encryptor.decrypt(toDecrypt));
+    }
+    
+    /**
+     * @param source packet with information about data length
+     * @return still encrypted datagram data without UDPLib header
+     */
+    public static byte[] unpacWithoutDecrypt(DatagramPacket source){
+        byte[] toDecrypt = new byte[source.getLength() - DATAGRAM_HEADER.length -1];
+        System.arraycopy(source.getData(), DATAGRAM_HEADER.length+1, toDecrypt, 0, toDecrypt.length);
+        
+        return toDecrypt;
     }
     
     /**

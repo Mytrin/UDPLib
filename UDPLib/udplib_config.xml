@@ -12,4 +12,8 @@ Default UDPLib config file.
     <item name="user-info-period">5000</item>
     <!-- Time, which will server wait after sending request, before it announces user as dead (ms) -->
     <item name="dead-time">2000</item>
+    <!-- Time waited between sending file parts (ms) -->
+    <item name="file-time">5</item>
+    <!-- Size of datagram header with binary file parts, enlarge in case you want to share large files. MUST BE DIVIDEABLE BY 16-->
+    <item name="binary-file-header-size">32</item>
 </root>
