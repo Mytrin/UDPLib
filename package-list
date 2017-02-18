@@ -1,5 +1,8 @@
 com.gmail.lepeska.martin.udplib
 com.gmail.lepeska.martin.udplib.client
+com.gmail.lepeska.martin.udplib.datagrams
+com.gmail.lepeska.martin.udplib.datagrams.explore
+com.gmail.lepeska.martin.udplib.datagrams.files
 com.gmail.lepeska.martin.udplib.example
 com.gmail.lepeska.martin.udplib.example.dialogs
 com.gmail.lepeska.martin.udplib.explore
