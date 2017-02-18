@@ -73,7 +73,7 @@ public class Datagrams {
     }
     
     /**
-     * FILENAME#INDEX#TOTAL#CHECKSUM#PART#0000 -> PART
+     * FILENAME#INDEX#TOTAL#CHECKSUM#PART#0000 returns PART
      * 
      * @param parts Decrypted message with UDPLib data
      * @param index index of message part
