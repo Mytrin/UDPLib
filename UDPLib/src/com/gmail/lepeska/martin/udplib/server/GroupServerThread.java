@@ -1,13 +1,19 @@
 package com.gmail.lepeska.martin.udplib.server;
 
 import com.gmail.lepeska.martin.udplib.util.ConfigLoader;
-import com.gmail.lepeska.martin.udplib.DatagramTypes;
-import com.gmail.lepeska.martin.udplib.Datagrams;
 import com.gmail.lepeska.martin.udplib.util.Encryptor;
 import com.gmail.lepeska.martin.udplib.AGroupThread;
 import com.gmail.lepeska.martin.udplib.StoredMessage;
 import com.gmail.lepeska.martin.udplib.UDPLibException;
 import com.gmail.lepeska.martin.udplib.client.GroupUser;
+import com.gmail.lepeska.martin.udplib.datagrams.ADatagram;
+import com.gmail.lepeska.martin.udplib.datagrams.AccessResponseDatagram;
+import com.gmail.lepeska.martin.udplib.datagrams.Datagrams;
+import com.gmail.lepeska.martin.udplib.datagrams.IsAliveDatagram;
+import com.gmail.lepeska.martin.udplib.datagrams.MessageDatagram;
+import com.gmail.lepeska.martin.udplib.datagrams.UserDeadDatagram;
+import com.gmail.lepeska.martin.udplib.datagrams.UserInfoDatagram;
+import com.gmail.lepeska.martin.udplib.datagrams.explore.ExploreResponse;
 import com.gmail.lepeska.martin.udplib.files.IServerShareListener;
 import com.gmail.lepeska.martin.udplib.files.AServerSharedFile;
 import com.gmail.lepeska.martin.udplib.files.ServerSharedBinaryFile;
@@ -20,7 +26,7 @@ import java.net.InetSocketAddress;
 import java.net.MulticastSocket;
 import java.net.NetworkInterface;
 import java.net.UnknownHostException;
-import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Enumeration;
 import java.util.HashMap;
@@ -37,7 +43,7 @@ import java.util.logging.Logger;
  */
 public class GroupServerThread extends AGroupThread{
      /**Users in group*/
-    private final ArrayList<ServerGroupUser> groupUsers= new ArrayList<>();
+    private final List<ServerGroupUser> groupUsers= Collections.synchronizedList(new LinkedList<>());
     /**This thread maintains info about group network*/
     private final ServerGroupInfoThread refreshThread;
 
@@ -57,7 +63,6 @@ public class GroupServerThread extends AGroupThread{
      */
     public GroupServerThread(String userName, String groupPassword, String hostAddress, String groupAddress, int port, int userInfoPeriod, int deadTime) throws UnknownHostException{
         Objects.requireNonNull(userName);
-        this.groupUsers.add(new ServerGroupUser(userName, InetAddress.getByName(hostAddress)));
         this.userName = userName;
         this.groupPassword = groupPassword;
         this.hostAddress = InetAddress.getByName(hostAddress);
@@ -132,29 +137,25 @@ public class GroupServerThread extends AGroupThread{
             
         while(!Thread.currentThread().isInterrupted() && socket != null){
             try{
-                byte[] buf = new byte[Datagrams.MAXIMUM_DATA_LENGTH];
+                byte[] buf = new byte[ADatagram.MAXIMUM_DATAGRAM_LENGTH];
                 
                 // receive request
                 DatagramPacket packet = new DatagramPacket(buf, buf.length);
                 socket.receive(packet);
-                
-                boolean isExploreDatagram = Datagrams.isExploreDatagram(Datagrams.bytesToString(buf));
 
-                if(isExploreDatagram){
-                    sendDatagram(packet.getAddress(), Datagrams.createExploreResponse(groupPassword != null));
+                ADatagram datagram = Datagrams.reconstructDatagram(encryptor, packet);
+
+                if(datagram != null){
+                        dealWithDatagram(packet, datagram);
                 }else{
-                    DatagramTypes type = Datagrams.getDatagramType(buf);
-
-                    if(type != DatagramTypes.TRASH){
-                        dealWithPacket(packet, type, Datagrams.unpack(encryptor, packet));
-                    }else{
                         //trash    
-                        Logger.getLogger(ConfigLoader.class.getName()).log(Level.WARNING, "Trash received: {0} -> {1} ", new String[]{Datagrams.bytesToString(buf), Datagrams.unpack(encryptor, packet)});
-                    }
-                }
-                
+                        Logger.getLogger(ConfigLoader.class.getName()).log(Level.WARNING, 
+                                "Trash received: {0} -> {1} ", new String[]{Arrays.toString(buf), 
+                                    Arrays.toString(encryptor.decrypt(buf))});
+                }                
             }catch(Exception e){
-                 Logger.getLogger(ConfigLoader.class.getName()).log(Level.SEVERE, "Error when parsing datagram! ", e);
+                 Logger.getLogger(ConfigLoader.class.getName()).log(Level.SEVERE, 
+                         "Error when parsing datagram! ", e);
             }
         }
         finishThread();
@@ -189,8 +190,7 @@ public class GroupServerThread extends AGroupThread{
      * is considered as dead.
      */
     void sendIsAliveRequests(){
-        byte[] data = Datagrams.createIsAliveRequestDatagram(encryptor);
-        sendMulticastDatagram(data);
+        sendMulticastDatagram(new IsAliveDatagram(encryptor, true));
         
         groupUsers.stream().forEach((user) -> {
             user.pingSent();
@@ -211,9 +211,8 @@ public class GroupServerThread extends AGroupThread{
         while(userIt.hasNext()){
             ServerGroupUser user = userIt.next();
             
-            if(user.waitingForResponse() && user.couldBeDead()){
-                byte[] data = Datagrams.createUserDeadDatagram(encryptor, user);
-                sendMulticastDatagram(data);
+            if(user.pingsLeft() > ServerGroupUser.DEAD_COUNT){
+                sendMulticastDatagram(new UserDeadDatagram(encryptor, user));
                 
                 listeners.stream().forEach((listener) -> {
                    listener.userKicked(user);
@@ -230,25 +229,23 @@ public class GroupServerThread extends AGroupThread{
      */
     void sendInfo(){
         groupUsers.stream().forEach((user) -> {            
-            byte[] data = Datagrams.createUserInfoDatagram(encryptor, user);
-            sendMulticastDatagram(data);
+            sendMulticastDatagram(new UserInfoDatagram(encryptor, user));
         });
     }
 
     @Override
     public void sendMessage(GroupUser target, String message) {
-        byte[] data = Datagrams.createMessageDatagram(encryptor, message, false, this);
-        sendDatagram(target, data);
+        ADatagram datagram = new MessageDatagram(encryptor, message, false, true);
+        sendDatagram(target, datagram);
     }
 
     @Override
     public void sendMulticastMessage(String message) {
-        byte[] data = Datagrams.createMessageDatagram(encryptor, message, true, this);
-        sendMulticastDatagram(data);
+        ADatagram datagram = new MessageDatagram(encryptor, message, true, true);
+        sendMulticastDatagram(datagram);
     }
 
     /**
-     * 
      * @param file content to share
      * @param name unique id
      * @param listener object to notify about progress
@@ -269,34 +266,35 @@ public class GroupServerThread extends AGroupThread{
     }
     
     @Override
-    protected void dealWithPacket(DatagramPacket source, DatagramTypes type, String data) {
-        String[] messageSplit = data.split(Datagrams.DELIMITER);
+    protected void dealWithDatagram(DatagramPacket source, ADatagram datagram) {
+        String[] messageSplit = datagram.getStringMessage();
         ServerGroupUser user;
-        
-        switch(type){
+        switch(datagram.getType()){
             case CLIENT_ACCESS_REQUEST:if(messageSplit.length >= 2 && (messageSplit[0].equals(groupPassword) || groupPassword==null)){
                                             ServerGroupUser newUser = new ServerGroupUser(messageSplit[1], source.getAddress());
                                             groupUsers.add(newUser);
-                                            sendDatagram(source.getAddress(), Datagrams.createServerClientAccessResponse(encryptor, groupAddress, source.getAddress(), true));
+                                            sendDatagram(source.getAddress(), new AccessResponseDatagram(encryptor, groupAddress, source.getAddress(), true));
                                             listeners.stream().forEach((listener) -> {
                                                 listener.userJoined(newUser);
                                             });
                                         }else{
-                                            sendDatagram(source.getAddress(), Datagrams.createServerClientAccessResponse(encryptor, hostAddress, source.getAddress(), false));
+                                            sendDatagram(source.getAddress(), new AccessResponseDatagram(encryptor, hostAddress, source.getAddress(), false));
                                         }
                                         break;
             case CLIENT_IS_ALIVE_RESPONSE: user = findGroupUserbyInetAddr(source.getAddress());
                                             if(user != null) user.pingReceived();
                                             break;
             case CLIENT_UNICAST_MESSAGE:    user = findGroupUserbyInetAddr(source.getAddress());
-                                            addMessage(new StoredMessage(Datagrams.getMessageFromDatagram(data), user, false));
+                                            addMessage(new StoredMessage(Datagrams.reconstructMessage(messageSplit, 0), user, false));
                                             break;
             case CLIENT_MULTICAST_MESSAGE:  user = findGroupUserbyInetAddr(source.getAddress());
-                                            addMessage(new StoredMessage(Datagrams.getMessageFromDatagram(data), user, true));
+                                            addMessage(new StoredMessage(Datagrams.reconstructMessage(messageSplit, 0), user, true));
                                             break;
             case CLIENT_FILE_SHARE_PART_REQUEST: AServerSharedFile requested = sharedFiles.get(messageSplit[0]);
                                                     if(requested != null) requested.partRequest(Integer.parseInt(messageSplit[1]));
                                                     break;
+            case CLIENT_EXPLORE_REQUEST: sendDatagram(source.getAddress(), new ExploreResponse(groupPassword != null));
+                                         break;
         }
     }
     
@@ -305,9 +303,9 @@ public class GroupServerThread extends AGroupThread{
      * @return user with given ip or null
      */
     private ServerGroupUser findGroupUserbyInetAddr(InetAddress ip){
-        for(ServerGroupUser user: groupUsers){
-            if(user.ip.equals(ip)){
-                return user;
+        for(ServerGroupUser gUser: groupUsers){
+            if(gUser.ip.equals(ip)){
+                return gUser;
             }
         }
         return null;

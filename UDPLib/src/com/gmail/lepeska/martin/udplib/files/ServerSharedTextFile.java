@@ -1,12 +1,14 @@
 package com.gmail.lepeska.martin.udplib.files;
 
-import com.gmail.lepeska.martin.udplib.Datagrams;
 import com.gmail.lepeska.martin.udplib.UDPLibException;
+import com.gmail.lepeska.martin.udplib.datagrams.ADatagram;
+import com.gmail.lepeska.martin.udplib.datagrams.files.FileShareTextPart;
 import com.gmail.lepeska.martin.udplib.server.GroupServerThread;
 import com.gmail.lepeska.martin.udplib.util.ConfigLoader;
 import com.gmail.lepeska.martin.udplib.util.Encryptor;
 import java.io.File;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -49,7 +51,7 @@ public class ServerSharedTextFile extends AServerSharedFile {
     private void validate() {
         for (int i = 0; i < parts.size(); i++) {
             String line = parts.get(i);
-            while (line.length() > Datagrams.MAXIMUM_DATA_LENGTH / 2) {
+            while (line.length() > ADatagram.MAXIMUM_DATAGRAM_LENGTH / 2) {
                 String cutted = line.substring(line.length() / 2);
                 line = line.substring(0, line.length() / 2);
 
@@ -64,7 +66,7 @@ public class ServerSharedTextFile extends AServerSharedFile {
         Path path = fileToShare.toPath();
 
         if (fileToShare.getName().matches(TEXT_FILES)) {
-            Files.lines(path).forEach((String t) -> {
+            Files.lines(path, StandardCharsets.UTF_8).forEach((String t) -> {
                 parts.add(t + "\n");
             });
 
@@ -78,21 +80,29 @@ public class ServerSharedTextFile extends AServerSharedFile {
             
     @Override
     protected void sendPartDatagrams() throws InterruptedException{
-        byte[] datagram;
+       ADatagram datagram;
             
-        int waitingTime = ConfigLoader.getInt("file-time");
-        
+        int waitingTime = ConfigLoader.getInt("file-time", 5);
+
         for(int i = 0; i < parts.size(); i++){
-            datagram = Datagrams.createServerFileSharePart(encryptor, name, parts.get(i), i, parts.size());
+            datagram = new FileShareTextPart(encryptor, name, parts.get(i), i, parts.size());
             groupServer.sendMulticastDatagram(datagram);
             Thread.sleep(waitingTime);
         }
     }
-    
+
     @Override
     public void partRequest(int index) {
         wasRequest = true;
-        byte[] datagram = Datagrams.createServerFileSharePart(encryptor, name, parts.get(index), index, parts.size());
+        ADatagram datagram = new FileShareTextPart(encryptor, name, parts.get(index), index, parts.size());
         groupServer.sendMulticastDatagram(datagram);
+    }
+    
+    /**
+     * @param part Datagram part data to be sent
+     * @return checksum of String without \n (Thank you, encodings for wasting hours of my time!)
+     */
+    public static int getChecksum(String part){
+        return part.replaceAll("\n", "").length();
     }
 }

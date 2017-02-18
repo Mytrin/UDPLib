@@ -47,6 +47,7 @@ public class ServerGroupInfoThread extends Thread{
                 groupServer.killDead();
             }catch(InterruptedException ex){
                  Logger.getLogger(GroupServerThread.class.getName()).log(Level.WARNING, "Shutting down ServerGroupInfoThread...");
+                 interrupt();
             }catch(Exception e){
                 throw new UDPLibException("ServerGroupInfoThread loop problem: ", e);
             }

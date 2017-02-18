@@ -3,7 +3,6 @@ package com.gmail.lepeska.martin.udplib.client;
 import com.gmail.lepeska.martin.udplib.AGroupNetwork;
 import com.gmail.lepeska.martin.udplib.util.ConfigLoader;
 import com.gmail.lepeska.martin.udplib.UDPLibException;
-import com.gmail.lepeska.martin.udplib.client.GroupClientThread;
 import java.net.UnknownHostException;
 
 /**
@@ -38,6 +37,6 @@ public class ClientGroupNetwork extends AGroupNetwork{
      * @throws UnknownHostException 
      */
     public ClientGroupNetwork(String userName, String groupPassword, String serverAddress) throws UnknownHostException{
-        this(userName, groupPassword, serverAddress, ConfigLoader.getInt("default-port"));
+        this(userName, groupPassword, serverAddress, ConfigLoader.getInt("default-port", 52511));
     }
 }

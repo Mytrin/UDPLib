@@ -1,5 +1,6 @@
 List of features to implement, after "cooldown":
 
-1.  Direct client->client messages trough server
+1.  Direct client->client messages through server
 2.  Consider identifying users by mac_address.
-3.  Binary file sharing support
+3.  Server goodbye on disconnect
+4.  Messages with confirm response for critical data.

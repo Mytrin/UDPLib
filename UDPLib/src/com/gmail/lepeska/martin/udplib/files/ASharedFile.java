@@ -5,7 +5,6 @@ import com.gmail.lepeska.martin.udplib.client.GroupClientThread;
 import com.gmail.lepeska.martin.udplib.util.Encryptor;
 import java.io.File;
 import java.io.IOException;
-import java.net.DatagramPacket;
 import java.net.InetAddress;
 
 
@@ -54,6 +53,10 @@ public abstract class ASharedFile<T> {
     public void finished(){
         if(!isFinished){
             isFinished = finishOrRequest();
+            if(isFinished){
+                createFile();
+            }
+        }else{
             createFile();
         }
     }
@@ -83,5 +86,12 @@ public abstract class ASharedFile<T> {
      * @throws java.io.IOException
      */
     protected abstract void fillFile(File createdFile)throws IOException;
+    
+    /**
+     * @param data Data of received part
+     * @param checksum control sum received from server
+     * @return true, if client calculated checksum is same as server checksum
+     */
+    public abstract boolean isPartValid(T data, int checksum);
     
 }

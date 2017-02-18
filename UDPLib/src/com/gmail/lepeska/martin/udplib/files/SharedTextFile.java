@@ -1,11 +1,15 @@
 package com.gmail.lepeska.martin.udplib.files;
 
-import com.gmail.lepeska.martin.udplib.Datagrams;
+import com.gmail.lepeska.martin.udplib.UDPLibException;
 import com.gmail.lepeska.martin.udplib.client.GroupClientThread;
+import com.gmail.lepeska.martin.udplib.datagrams.ADatagram;
+import com.gmail.lepeska.martin.udplib.datagrams.files.FileSharePartRequest;
 import com.gmail.lepeska.martin.udplib.util.Encryptor;
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.net.DatagramPacket;
+import java.io.PrintWriter;
+import java.io.UnsupportedEncodingException;
 import java.net.InetAddress;
 import java.nio.file.Files;
 import java.nio.file.Paths;
@@ -44,7 +48,7 @@ public class SharedTextFile extends ASharedFile<String> {
     protected boolean finishOrRequest() {
         for (int i = 0; i < parts.length; i++) {
             if (parts[i] == null) {
-                byte[] datagram = Datagrams.createClientFileSharePartRequest(encryptor, name, i);
+                ADatagram datagram = new FileSharePartRequest(encryptor, name, i);
                 client.sendDatagram(server, datagram);
                 return false;
             }
@@ -55,5 +59,20 @@ public class SharedTextFile extends ASharedFile<String> {
     @Override
     protected void fillFile(File createdFile) throws IOException {
         Files.write(Paths.get(createdFile.getPath()), Arrays.asList(parts));
+        try{
+            PrintWriter writer = new PrintWriter(createdFile, ADatagram.ENCODING);
+            for (String line : parts) {
+                writer.write(line);
+            }
+            writer.close();
+        }catch(FileNotFoundException | UnsupportedEncodingException e){
+            throw new UDPLibException("Failed to save text file: ", e);
+        }
     }
+    
+    @Override
+    public boolean isPartValid(String data, int checksum) {
+        return ServerSharedTextFile.getChecksum(data)==checksum;
+    }
+    
 }

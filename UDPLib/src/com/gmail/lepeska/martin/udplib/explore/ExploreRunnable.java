@@ -1,9 +1,12 @@
 package com.gmail.lepeska.martin.udplib.explore;
 
 import com.gmail.lepeska.martin.udplib.DatagramTypes;
-import com.gmail.lepeska.martin.udplib.Datagrams;
 import com.gmail.lepeska.martin.udplib.UDPLibException;
+import com.gmail.lepeska.martin.udplib.datagrams.ADatagram;
+import com.gmail.lepeska.martin.udplib.datagrams.Datagrams;
+import com.gmail.lepeska.martin.udplib.datagrams.explore.ExploreRequest;
 import com.gmail.lepeska.martin.udplib.util.ConfigLoader;
+import com.gmail.lepeska.martin.udplib.util.Encryptor;
 import java.net.DatagramPacket;
 import java.net.Inet6Address;
 import java.net.InetAddress;
@@ -34,7 +37,7 @@ public class ExploreRunnable implements Runnable{
      * @throws java.net.UnknownHostException
      */
     public ExploreRunnable(IExploreListener listener) throws UnknownHostException, UDPLibException{
-        this(ConfigLoader.getString("default-group"), ConfigLoader.getInt("default-port"), listener);
+        this(ConfigLoader.getString("default-group", "225.226.227.228"), ConfigLoader.getInt("default-port", 52511), listener);
     }
 
     /**
@@ -61,8 +64,8 @@ public class ExploreRunnable implements Runnable{
         try{
             socket = new MulticastSocket(port);
 
-            byte[] exploreData = Datagrams.createExploreRequest();
-            DatagramPacket packet = new DatagramPacket(exploreData, exploreData.length, groupAddress, port); 
+            ADatagram exploreDatagram = new ExploreRequest();
+            DatagramPacket packet = exploreDatagram.createPacket(groupAddress, port);
 
             //send multicast on all posible interfaces
             Enumeration<NetworkInterface> nets = NetworkInterface.getNetworkInterfaces();
@@ -81,24 +84,23 @@ public class ExploreRunnable implements Runnable{
             }
             
             //wait for deadTime * 2 for responses
-            int waitingTime = ConfigLoader.getInt("dead-time") * 2;
+            int waitingTime = ConfigLoader.getInt("dead-time", 5000) * 2;
             long start = System.currentTimeMillis();
             long elapsed = 0;
             
             
-            byte[] responseData = new byte[Datagrams.MAXIMUM_DATA_LENGTH];
+            byte[] responseData = new byte[ADatagram.MAXIMUM_DATAGRAM_LENGTH];
             DatagramPacket response = new DatagramPacket(responseData, responseData.length);
-            
             socket.setSoTimeout(waitingTime);
             
             while(elapsed < waitingTime){
                 try{
                     socket.receive(response);
-                
-                    if(Datagrams.getDatagramType(responseData) == DatagramTypes.SERVER_EXPLORE_RESPONSE){
-                        String respStr = Datagrams.unpackNotEncrypted(responseData, response);
+                    ADatagram responseDatagram = Datagrams.reconstructDatagram(Encryptor.DUMMY, response);
+                    if(responseDatagram != null && responseDatagram.getType() == DatagramTypes.SERVER_EXPLORE_RESPONSE){
                         
-                        AvailableServerRecord record = new AvailableServerRecord(groupAddress, port, response.getAddress(), respStr.endsWith("1"));
+                        AvailableServerRecord record = new AvailableServerRecord(groupAddress, port, 
+                                response.getAddress(), responseDatagram.getStringMessage()[0].equals("1"));
                         if(listener != null){
                             listener.receive(record);
                         }
@@ -108,7 +110,7 @@ public class ExploreRunnable implements Runnable{
                     if(elapsed < waitingTime){
                         socket.setSoTimeout(waitingTime - (int)elapsed);
                         
-                        responseData = new byte[Datagrams.MAXIMUM_DATA_LENGTH];
+                        responseData = new byte[ADatagram.MAXIMUM_DATAGRAM_LENGTH];
                         response = new DatagramPacket(responseData, responseData.length);
                     }                    
                 }catch(Exception e){

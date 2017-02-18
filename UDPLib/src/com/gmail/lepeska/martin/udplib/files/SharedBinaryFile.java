@@ -1,12 +1,11 @@
 package com.gmail.lepeska.martin.udplib.files;
 
-import com.gmail.lepeska.martin.udplib.Datagrams;
 import com.gmail.lepeska.martin.udplib.client.GroupClientThread;
-import com.gmail.lepeska.martin.udplib.util.ConfigLoader;
+import com.gmail.lepeska.martin.udplib.datagrams.ADatagram;
+import com.gmail.lepeska.martin.udplib.datagrams.files.FileSharePartRequest;
 import com.gmail.lepeska.martin.udplib.util.Encryptor;
 import java.io.File;
 import java.io.IOException;
-import java.net.DatagramPacket;
 import java.net.InetAddress;
 import java.nio.file.Files;
 
@@ -19,8 +18,9 @@ import java.nio.file.Files;
 public class SharedBinaryFile extends ASharedFile<byte[]> {
 
     private final byte[] data;
+    private byte[] lastPart; //last part has not fixed length
     private final boolean[] receivedBlocks;
-    
+
     /**
      * @param name Unique name of file
      * @param parts Count of fileParts to receive
@@ -31,13 +31,18 @@ public class SharedBinaryFile extends ASharedFile<byte[]> {
      */
     public SharedBinaryFile(String name, int parts, GroupClientThread client, Encryptor encryptor, InetAddress server) {
         super(name, client, encryptor, server);
-        this.data = new byte[Datagrams.MAXIMUM_DATA_LENGTH*parts];
-        this.receivedBlocks = new boolean[parts];
+        this.data = new byte[ServerSharedBinaryFile.DATA_LENGTH*parts];
+        this.receivedBlocks = new boolean[parts+1];
     }
 
     @Override
     public void setPart(int index, byte[] content) {
-        System.arraycopy(content, 0, data, index*Datagrams.MAXIMUM_DATA_LENGTH, content.length);
+        if(index+1 != receivedBlocks.length){
+            System.arraycopy(content, 0, data, index*ServerSharedBinaryFile.DATA_LENGTH, content.length);
+        }else{
+            lastPart = content;
+        }
+        
         receivedBlocks[index] = true;
     }
 
@@ -45,8 +50,7 @@ public class SharedBinaryFile extends ASharedFile<byte[]> {
     protected boolean finishOrRequest() {
         for (int i = 0; i < receivedBlocks.length; i++) {
             if (receivedBlocks[i] == false) {
-                System.out.println("Missing part: "+i);
-                byte[] datagram = Datagrams.createClientFileSharePartRequest(encryptor, name, i);
+                ADatagram datagram = new FileSharePartRequest(encryptor, name, i);
                 client.sendDatagram(server, datagram);
                 return false;
             }
@@ -56,6 +60,17 @@ public class SharedBinaryFile extends ASharedFile<byte[]> {
 
     @Override
     protected void fillFile(File createdFile) throws IOException {
-        Files.write(createdFile.toPath(), data);
+        //memory is faster than hdd
+        byte[] completeData = new byte[data.length+lastPart.length];
+        System.arraycopy(data, 0, completeData, 0, data.length);
+        System.arraycopy(lastPart, 0, completeData, data.length, lastPart.length);
+        
+        Files.write(createdFile.toPath(), completeData);
     }
+
+    @Override
+    public boolean isPartValid(byte[] data, int checksum) {
+        return ServerSharedBinaryFile.getChecksum(data)==checksum;
+    }
+    
 }

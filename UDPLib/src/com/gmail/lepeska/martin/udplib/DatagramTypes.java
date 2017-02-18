@@ -40,7 +40,7 @@ public enum DatagramTypes {
     SERVER_BINARY_FILE_SHARE_PART(15, false),
     
     TRASH(-1, false),
-    THE_ANSWER(42, false);
+    THE_ANSWER(42, false); // :-)
     ;
     
     /** byte, by which is this type represented in datagram content*/
@@ -65,7 +65,7 @@ public enum DatagramTypes {
      * @return DatagramType on this index or TRASH
      */
     public static DatagramTypes getTypeByIndex(int index){
-        if(index < VALUES.length && index > -1){
+        if(index < VALUES.length -1 && index > -1){
             return VALUES[index];
         }
         return TRASH;   

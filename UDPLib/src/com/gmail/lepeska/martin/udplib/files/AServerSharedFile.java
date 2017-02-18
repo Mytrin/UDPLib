@@ -1,7 +1,8 @@
 package com.gmail.lepeska.martin.udplib.files;
 
-import com.gmail.lepeska.martin.udplib.Datagrams;
 import com.gmail.lepeska.martin.udplib.UDPLibException;
+import com.gmail.lepeska.martin.udplib.datagrams.ADatagram;
+import com.gmail.lepeska.martin.udplib.datagrams.files.FileShareFinish;
 import com.gmail.lepeska.martin.udplib.server.GroupServerThread;
 import com.gmail.lepeska.martin.udplib.util.Encryptor;
 import java.io.File;
@@ -50,7 +51,7 @@ public abstract class AServerSharedFile implements Runnable{
 
             sendPartDatagrams();
             
-            byte[] datagram = Datagrams.createServerFileShareFinish(encryptor, name);
+            ADatagram datagram = new FileShareFinish(encryptor, name);
             
             while(wasRequest){
                 wasRequest = false;

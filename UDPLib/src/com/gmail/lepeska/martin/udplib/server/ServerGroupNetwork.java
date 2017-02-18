@@ -49,7 +49,8 @@ public class ServerGroupNetwork extends AGroupNetwork{
      * @throws UnknownHostException 
      */
     public ServerGroupNetwork(String userName, String groupPassword, String hostAddress, String groupAddress, int port) throws UnknownHostException{
-        this(userName, groupPassword, hostAddress, groupAddress, port, ConfigLoader.getInt("user-info-period"), ConfigLoader.getInt("dead-time"));
+        this(userName, groupPassword, hostAddress, groupAddress, port, 
+                ConfigLoader.getInt("user-info-period", 5000), ConfigLoader.getInt("dead-time", 2000));
     }
 
     /**
@@ -62,7 +63,7 @@ public class ServerGroupNetwork extends AGroupNetwork{
      * @throws UnknownHostException 
      */
     public ServerGroupNetwork(String userName, String groupPassword, String hostAddress, int port) throws UnknownHostException{
-        this(userName, groupPassword, hostAddress, ConfigLoader.getString("default-group"), port);
+        this(userName, groupPassword, hostAddress, ConfigLoader.getString("default-group", "225.226.227.228"), port);
     }
 
     /**
@@ -73,7 +74,8 @@ public class ServerGroupNetwork extends AGroupNetwork{
      * @throws UnknownHostException 
      */
     public ServerGroupNetwork(String userName, String groupPassword) throws UnknownHostException{
-        this(userName, groupPassword, ConfigLoader.getString("default-server-ip"), ConfigLoader.getString("default-group"), ConfigLoader.getInt("default-port"));
+        this(userName, groupPassword, ConfigLoader.getString("default-server-ip", "0.0.0.0"), 
+                ConfigLoader.getString("default-group", "225.226.227.228"), ConfigLoader.getInt("default-port", 52511));
     }
     
     /**
@@ -83,7 +85,8 @@ public class ServerGroupNetwork extends AGroupNetwork{
      * @throws UnknownHostException 
      */
     public ServerGroupNetwork(String userName) throws UnknownHostException{
-        this(userName, null, ConfigLoader.getString("default-server-ip"), ConfigLoader.getString("default-group"), ConfigLoader.getInt("default-port"));
+        this(userName, null, ConfigLoader.getString("default-server-ip", "0.0.0.0"), 
+                ConfigLoader.getString("default-group", "225.226.227.228"), ConfigLoader.getInt("default-port", 52511));
     }
 
     /**

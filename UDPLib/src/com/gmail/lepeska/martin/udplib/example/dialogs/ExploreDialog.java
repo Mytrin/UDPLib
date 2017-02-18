@@ -60,10 +60,10 @@ public class ExploreDialog {
         
         EDIT_GRID.add(SERVER_LIST, 0, 0);
         
-        EDIT_GRID.add(new Label("Group address(*)"), 0, 1);
+        EDIT_GRID.add(new Label("Group address"), 0, 1);
         EDIT_GRID.add(GROUP_ADDRESS, 1, 1);
         
-        EDIT_GRID.add(new Label("Port(*)"), 0, 2);
+        EDIT_GRID.add(new Label("Port"), 0, 2);
         EDIT_GRID.add(PORT, 1, 2);
 
         EDIT_GRID.add(SCAN_BTN, 0, 3);

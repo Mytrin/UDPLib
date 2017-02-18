@@ -16,7 +16,7 @@ import org.w3c.dom.NodeList;
  */
 public final class ConfigLoader {
     /**Version of this library*/
-    public static final String VERSION ="BETA 1.3";
+    public static final String VERSION ="BETA 2";
     /** Indicator that some configuration was already loaded */
      private static boolean configLoaded = false;
      /** Loaded values */
@@ -66,17 +66,34 @@ public final class ConfigLoader {
 
     /**
      * @param itemName name of tag
+     * @param defaultValue returned value when item was not found
      * @return its value or null
      */
-    public synchronized static String getString(String itemName){
-        return CONFIG.get(itemName);
+    public synchronized static String getString(String itemName, String defaultValue){
+        if(CONFIG.get(itemName) != null){
+           return CONFIG.get(itemName);
+        }
+        
+        return defaultValue;
     }
     
     /**
      * @param itemName name of tag
+     * @param defaultValue returned value when item was not found
      * @return its value or null
      */
-    public synchronized static int getInt(String itemName){
-        return Integer.parseInt(CONFIG.get(itemName));
+    public synchronized static int getInt(String itemName, int defaultValue){
+        try{
+            String value = CONFIG.get(itemName);
+            if(value == null){
+                return defaultValue;
+            }
+            
+            return Integer.parseInt(value);
+        }catch(NumberFormatException e){
+            Logger.getLogger(ConfigLoader.class.getName()).log(Level.SEVERE, "Item "+itemName+" is not number! ", e);
+        }
+        
+        return defaultValue;
     }
 }

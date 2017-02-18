@@ -2,6 +2,7 @@ package com.gmail.lepeska.martin.udplib;
 
 import com.gmail.lepeska.martin.udplib.util.Encryptor;
 import com.gmail.lepeska.martin.udplib.client.GroupUser;
+import com.gmail.lepeska.martin.udplib.datagrams.ADatagram;
 import java.net.DatagramPacket;
 import java.net.InetAddress;
 import java.net.MulticastSocket;
@@ -123,41 +124,40 @@ public abstract class AGroupThread extends Thread{
    /**
     * Deals with received datagram.
     * @param source DatagramPacket containing UDPLib datagram
-    * @param type type of UDPLib datagram
-    * @param data  decrypted data of datagram
+    * @param datagram  reconstructed datagram
     */
-   protected abstract void dealWithPacket(DatagramPacket source, DatagramTypes type, String data);
+   protected abstract void dealWithDatagram(DatagramPacket source, ADatagram datagram);
 
    /**
     * Sends datagram with given data to specified GroupUser
     * @param target who should receive this datagram
-    * @param data what should user receive
+    * @param datagram what should user receive
     */
-   public synchronized void sendDatagram(InetAddress target, byte[] data){
+   public synchronized void sendDatagram(InetAddress target, ADatagram datagram){
        try{
-           DatagramPacket packet = new DatagramPacket(data, data.length, target, port); 
+           DatagramPacket packet = datagram.createPacket(target, port);
            socket.send(packet);
        }catch(Exception e){
            throw new UDPLibException("Unable to send datagram: ", e);
        }
    }
-   
+
    /**
     * Sends datagram with given data to specified GroupUser
     * @param target User, who should receive this datagram
-    * @param data what should user receive
+    * @param datagram what should user receive
     */
-   public synchronized void sendDatagram(GroupUser target, byte[] data){
-       sendDatagram(target.ip, data);
+   public synchronized void sendDatagram(GroupUser target, ADatagram datagram){
+       sendDatagram(target.ip, datagram);
    }
    
    /**
     * Sends datagram with given data to all GroupUsers
-    * @param data what should everyone receive
+    * @param datagram what should everyone receive
     */
-   public synchronized void sendMulticastDatagram(byte[] data){
+   public synchronized void sendMulticastDatagram(ADatagram datagram){
        try{
-          DatagramPacket packet = new DatagramPacket(data, data.length, groupAddress, port); 
+          DatagramPacket packet = datagram.createPacket(groupAddress, port);
           for(MulticastSocket sendSocket: sendSockets){
             sendSocket.send(packet);
           }
