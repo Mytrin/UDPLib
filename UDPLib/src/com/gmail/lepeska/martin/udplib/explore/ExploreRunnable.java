@@ -49,13 +49,9 @@ public class ExploreRunnable implements Runnable{
      * @throws UDPLibException 
      */
     public ExploreRunnable(String groupAddress, int port, IExploreListener listener) throws UnknownHostException, UDPLibException{
-        if(ConfigLoader.isConfigLoaded()){
-            this.groupAddress = InetAddress.getByName(groupAddress);
-            this.port = port;
-            this.listener = listener;
-        }else{
-            throw new UDPLibException("Config was not loaded yet!");
-        }
+        this.groupAddress = InetAddress.getByName(groupAddress);
+        this.port = port;
+        this.listener = listener;
     }
     
     @Override

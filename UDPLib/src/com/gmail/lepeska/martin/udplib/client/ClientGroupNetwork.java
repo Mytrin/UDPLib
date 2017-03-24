@@ -2,7 +2,6 @@ package com.gmail.lepeska.martin.udplib.client;
 
 import com.gmail.lepeska.martin.udplib.AGroupNetwork;
 import com.gmail.lepeska.martin.udplib.util.ConfigLoader;
-import com.gmail.lepeska.martin.udplib.UDPLibException;
 import java.net.UnknownHostException;
 
 /**
@@ -21,11 +20,7 @@ public class ClientGroupNetwork extends AGroupNetwork{
      * @throws UnknownHostException 
      */
     public ClientGroupNetwork(String userName, String groupPassword, String serverAddress, int port) throws UnknownHostException{
-        if(ConfigLoader.isConfigLoaded()){
-            groupThread = new GroupClientThread(userName, groupPassword, serverAddress, port);
-        }else{
-            throw new UDPLibException("Config was not loaded yet!");
-        }
+        groupThread = new GroupClientThread(userName, groupPassword, serverAddress, port);
     }
     
     /**

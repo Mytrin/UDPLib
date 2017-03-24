@@ -52,10 +52,6 @@ public class ExampleController implements Initializable, IGroupListener {
     
     @Override
     public void initialize(URL url, ResourceBundle rb) {
-        //UDPLib init
-        ConfigLoader.loadConfig();
-        
-        
         versionText.setText(versionText.getText()+ConfigLoader.VERSION);
         
         docView.getEngine().load("http://mytrin.github.io/UDPLib/"); //TODO doc
