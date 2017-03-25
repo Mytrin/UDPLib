@@ -144,34 +144,31 @@ public class ExampleController implements Initializable, IGroupListener {
     }
 
     @FXML
-    private void share(){
-        if(network != null){
-            if(network instanceof ServerGroupNetwork){
+    private void share() {
+        if (network != null) {
             FileChooser fileChooser = new FileChooser();
             fileChooser.setTitle("Select file to share");
             File toShare = fileChooser.showOpenDialog(null);
-            
-            if(toShare != null && toShare.isFile()){
-                ((ServerGroupNetwork)network).shareFile(toShare, toShare.getName(), new IFileShareListener(){
+
+            if (toShare != null && toShare.isFile()) {
+                ((ServerGroupNetwork) network).shareFile(toShare, toShare.getName(), new IFileShareListener() {
                     @Override
                     public void onFinished(File file) {
-                       Platform.runLater(() -> {
-                           DialogUtils.showInfo(file.getName()+" successfuly shared!");
-                           fileView.getItems().add(file);
-                       });
+                        Platform.runLater(() -> {
+                            DialogUtils.showInfo(file.getName() + " successfuly shared!");
+                            fileView.getItems().add(file);
+                        });
                     }
 
                     @Override
                     public void onFail(File file, Exception e) {
                         Platform.runLater(() -> {
-                           DialogUtils.showErrorAlert(file.getName()+": "+e);
-                       });
+                            DialogUtils.showErrorAlert(file.getName() + ": " + e);
+                        });
                     }
                 });
             }
-            }else{
-                DialogUtils.showErrorAlert("Only server can share files!");
-            }
+
         }
     }
     
