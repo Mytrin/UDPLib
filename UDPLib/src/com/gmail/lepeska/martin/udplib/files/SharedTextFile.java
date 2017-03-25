@@ -100,9 +100,9 @@ public class SharedTextFile extends ASharedFile {
     
     /**
      * @param part Datagram part data to be sent
-     * @return checksum of String without \n (Thank you, encodings for wasting hours of my time!)
+     * @return checksum of String without \n and spaces(Thank you encodings, for wasting hours of my time!)
      */
     public static int getChecksum(String part){
-        return part.replaceAll("\n", "").length();
+        return part.replaceAll("\n", "").replaceAll(" ", "").length();
     }
 }

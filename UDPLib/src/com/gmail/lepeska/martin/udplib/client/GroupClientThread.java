@@ -10,7 +10,6 @@ import com.gmail.lepeska.martin.udplib.datagrams.AccessRequestDatagram;
 import com.gmail.lepeska.martin.udplib.datagrams.Datagrams;
 import com.gmail.lepeska.martin.udplib.datagrams.IsAliveDatagram;
 import com.gmail.lepeska.martin.udplib.datagrams.MessageDatagram;
-import java.io.File;
 import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.InetAddress;
@@ -96,6 +95,7 @@ public class GroupClientThread extends AGroupThread {
                     socket.joinGroup(groupAddress);
 
                     socket.setSoTimeout(0);
+                    //socket.setSoTimeout(ConfigLoader.getInt("dead-time", 2000)*10);
 
                     GroupUser me = new GroupUser(userName, hostAddress);
 
@@ -131,7 +131,7 @@ public class GroupClientThread extends AGroupThread {
                 byte[] buf = new byte[ADatagram.MAXIMUM_DATAGRAM_LENGTH];
 
                 DatagramPacket packet = new DatagramPacket(buf, buf.length);
-                socket.setSoTimeout(ConfigLoader.getInt("dead-time", 2000)*5);
+
                 socket.receive(packet);
 
                 ADatagram datagram = Datagrams.reconstructDatagram(encryptor, packet);
@@ -220,6 +220,10 @@ public class GroupClientThread extends AGroupThread {
 
     @Override
     public void leave() {
+        try{
+            socket.setTimeToLive(1); //die immediatly
+        }catch(Exception e){}
+        
         this.interrupt();
     }
 

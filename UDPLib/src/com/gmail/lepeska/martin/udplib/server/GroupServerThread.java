@@ -172,11 +172,11 @@ public class GroupServerThread extends AGroupThread{
      * Called by ServerGroupInfoThread.
      * Request for all group members response,
      * anyone who will not respond in time,
-     * is considered as dead.
+     * is considered as disconnected.
      */
     void sendIsAliveRequests(){
         sendMulticastDatagram(new IsAliveDatagram(encryptor, true));
-        
+                
         groupUsers.stream().forEach((user) -> {
             user.pingSent();
             

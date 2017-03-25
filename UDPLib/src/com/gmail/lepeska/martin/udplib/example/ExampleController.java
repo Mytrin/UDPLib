@@ -151,7 +151,7 @@ public class ExampleController implements Initializable, IGroupListener {
             File toShare = fileChooser.showOpenDialog(null);
 
             if (toShare != null && toShare.isFile()) {
-                ((ServerGroupNetwork) network).shareFile(toShare, toShare.getName(), new IFileShareListener() {
+                network.shareFile(toShare, toShare.getName(), new IFileShareListener() {
                     @Override
                     public void onFinished(File file) {
                         Platform.runLater(() -> {
