@@ -141,7 +141,7 @@ public abstract class ADatagram {
         
         byte[] datagram = new byte[DATAGRAM_HEADER.length + 1 + encryptedData.length];
         System.arraycopy(DATAGRAM_HEADER, 0, datagram, 0, DATAGRAM_HEADER.length);
-        datagram[DATAGRAM_HEADER.length] = (byte)DatagramTypes.SERVER_BINARY_FILE_SHARE_PART.index;
+        datagram[DATAGRAM_HEADER.length] = (byte)DatagramTypes.BINARY_FILE_SHARE_PART.index;
         System.arraycopy(encryptedData, 0, datagram, DATAGRAM_HEADER.length+1, encryptedData.length);
         
         return datagram;

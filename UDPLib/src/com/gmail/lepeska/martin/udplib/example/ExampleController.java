@@ -11,7 +11,6 @@ import com.gmail.lepeska.martin.udplib.example.dialogs.DialogUtils;
 import com.gmail.lepeska.martin.udplib.example.dialogs.ExploreDialog;
 import com.gmail.lepeska.martin.udplib.example.dialogs.JoinDialog;
 import com.gmail.lepeska.martin.udplib.explore.AvailableServerRecord;
-import com.gmail.lepeska.martin.udplib.files.IServerShareListener;
 import com.gmail.lepeska.martin.udplib.server.ServerGroupNetwork;
 import java.io.File;
 import java.net.URL;
@@ -27,6 +26,7 @@ import javafx.scene.input.MouseEvent;
 import javafx.scene.text.Text;
 import javafx.scene.web.WebView;
 import javafx.stage.FileChooser;
+import com.gmail.lepeska.martin.udplib.files.IFileShareListener;
 
 /**
  * Example chat using UDPLib
@@ -152,7 +152,7 @@ public class ExampleController implements Initializable, IGroupListener {
             File toShare = fileChooser.showOpenDialog(null);
             
             if(toShare != null && toShare.isFile()){
-                ((ServerGroupNetwork)network).shareFile(toShare, toShare.getName(), new IServerShareListener(){
+                ((ServerGroupNetwork)network).shareFile(toShare, toShare.getName(), new IFileShareListener(){
                     @Override
                     public void onFinished(File file) {
                        Platform.runLater(() -> {

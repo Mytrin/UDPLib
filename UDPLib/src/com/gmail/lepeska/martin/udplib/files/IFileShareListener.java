@@ -8,7 +8,7 @@ import java.io.File;
  * 
  * @author Martin Lepeška
  */
-public interface IServerShareListener {
+public interface IFileShareListener {
     
     /**
      * Called, when file has been successfully sent to network

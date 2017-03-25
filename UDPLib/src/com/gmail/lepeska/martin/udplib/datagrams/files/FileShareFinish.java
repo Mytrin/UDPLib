@@ -7,7 +7,7 @@ import com.gmail.lepeska.martin.udplib.util.Encryptor;
 import java.net.DatagramPacket;
 
 /**
- * Creates SERVER_FILE_SHARE_FINISH datagram, which server uses to inform users
+ * Creates FILE_SHARE_FINISH datagram, which server uses to inform users
  * that all file parts have been sent.
  * 
  * Format: HEADER(N bytes)TYPE(1B)NAME
@@ -21,7 +21,7 @@ public class FileShareFinish extends ADatagram{
      * @param fileName - String, under which should be the SharedFile stored in Map
      */
     public FileShareFinish(Encryptor encryptor, String fileName) {
-        super(encryptor, DatagramTypes.SERVER_FILE_SHARE_FINISH);
+        super(encryptor, DatagramTypes.FILE_SHARE_FINISH);
         this.message = fileName;
         this.data=createDatagramDataFromString(message);
     }
@@ -33,7 +33,7 @@ public class FileShareFinish extends ADatagram{
      * @param source received packet containing info about true length of datagram
      */
     public FileShareFinish(Encryptor encryptor, DatagramPacket source) {
-        super(encryptor, DatagramTypes.SERVER_FILE_SHARE_FINISH);
+        super(encryptor, DatagramTypes.FILE_SHARE_FINISH);
         this.data=source.getData();
         this.message=bytesToString(unpackAndDecrypt(source));
     }

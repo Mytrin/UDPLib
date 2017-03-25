@@ -1,76 +1,103 @@
 package com.gmail.lepeska.martin.udplib.files;
 
-import com.gmail.lepeska.martin.udplib.client.GroupClientThread;
+import com.gmail.lepeska.martin.udplib.AGroupThread;
+import com.gmail.lepeska.martin.udplib.UDPLibException;
 import com.gmail.lepeska.martin.udplib.datagrams.ADatagram;
-import com.gmail.lepeska.martin.udplib.datagrams.files.FileSharePartRequest;
+import com.gmail.lepeska.martin.udplib.datagrams.files.FileShareBinaryPart;
+import com.gmail.lepeska.martin.udplib.server.GroupServerThread;
+import com.gmail.lepeska.martin.udplib.util.ConfigLoader;
 import com.gmail.lepeska.martin.udplib.util.Encryptor;
 import java.io.File;
 import java.io.IOException;
-import java.net.InetAddress;
 import java.nio.file.Files;
+import java.nio.file.Path;
 
 /**
- *
- * SharedBinaryFile is client representation of image file shared at network.
+ * Class representing text file, which will be divided into segments and shared
+ * to GroupNetwork.
  *
  * @author Martin Lepeška
  */
-public class SharedBinaryFile extends ASharedFile<byte[]> {
+public class SharedBinaryFile extends ASharedFile {
 
-    private final byte[] data;
-    private byte[] lastPart; //last part has not fixed length
-    private final boolean[] receivedBlocks;
-
+    private byte[] data;
+    private int partsCount;
+    /**Maximal length of binary part data according to configuration*/    
+    public static int DATA_LENGTH = -1;
+    static{
+        int infoLength = ConfigLoader.getInt("binary-file-header-size", 32)+ADatagram.DATAGRAM_HEADER.length+1;
+        DATA_LENGTH=ADatagram.MAXIMUM_DATAGRAM_LENGTH-infoLength;
+        //Encryptor takes only 16
+        if(DATA_LENGTH%16!=0){ 
+            DATA_LENGTH-=DATA_LENGTH%16;
+        }
+        //messed up configuration
+        if(DATA_LENGTH==0)DATA_LENGTH=16;
+    }
     /**
-     * @param name Unique name of file
-     * @param parts Count of fileParts to receive
-     * @param client Thread with socket, which can SharedFile use for
-     * CLIENT_FILE_SHARE_PART_REQUEST
-     * @param encryptor object responsible for encrypting requests
-     * @param server server ip
+     * @param fileToShare Data to share
+     * @param name Unique String ID, under which will be file accessible at
+     * AGroupNetwork class
+     * @param groupThread Thread responsible for sending datagrams to group
+     * @param encryptor Class responsible for encrypting file content on network
+     * @param deadTime Time, which will server wait after finishing file
+     * sharing. At this time client may request resending some of the parts
+     * @param listener can be null, object which will be notified about
+     * success/fail
      */
-    public SharedBinaryFile(String name, int parts, GroupClientThread client, Encryptor encryptor, InetAddress server) {
-        super(name, client, encryptor, server);
-        this.data = new byte[ServerSharedBinaryFile.DATA_LENGTH*parts];
-        this.receivedBlocks = new boolean[parts+1];
+    public SharedBinaryFile(File fileToShare, String name, AGroupThread groupThread, Encryptor encryptor, int deadTime, IFileShareListener listener) {
+        super(fileToShare, name, groupThread, encryptor, deadTime, listener);
     }
 
     @Override
-    public void setPart(int index, byte[] content) {
-        if(index+1 != receivedBlocks.length){
-            System.arraycopy(content, 0, data, index*ServerSharedBinaryFile.DATA_LENGTH, content.length);
+    protected void readFile() throws IOException, UDPLibException {
+        Path path = fileToShare.toPath();
+
+        data = Files.readAllBytes(path);
+                
+        partsCount = (int)Math.ceil(data.length/DATA_LENGTH);
+    }
+
+    private ADatagram createPartDatagram(int index){
+        ADatagram datagram;
+        byte[] datagramData;
+        
+        int datagramStart = index*DATA_LENGTH;
+        int datagramLength;
+        if(datagramStart+DATA_LENGTH<data.length){
+            datagramLength = DATA_LENGTH;
         }else{
-            lastPart = content;
+            datagramLength = data.length - datagramStart;
         }
+        datagramData = new byte[datagramLength];
+        System.arraycopy(data, datagramStart, datagramData, 0, datagramLength);
+            
+        datagram = new FileShareBinaryPart(encryptor, name, datagramData, index, partsCount);
         
-        receivedBlocks[index] = true;
-    }
-
+        return datagram;
+    } 
+            
     @Override
-    protected boolean finishOrRequest() {
-        for (int i = 0; i < receivedBlocks.length; i++) {
-            if (receivedBlocks[i] == false) {
-                ADatagram datagram = new FileSharePartRequest(encryptor, name, i);
-                client.sendDatagram(server, datagram);
-                return false;
-            }
+    protected void sendPartDatagrams() throws InterruptedException{
+        int waitingTime = ConfigLoader.getInt("file-time", 5);
+        
+        for(int i = 0; i <= partsCount; i++){
+            groupThread.sendMulticastDatagram(createPartDatagram(i));            
+            Thread.sleep(waitingTime);
         }
-        return true;
     }
-
-    @Override
-    protected void fillFile(File createdFile) throws IOException {
-        //memory is faster than hdd
-        byte[] completeData = new byte[data.length+lastPart.length];
-        System.arraycopy(data, 0, completeData, 0, data.length);
-        System.arraycopy(lastPart, 0, completeData, data.length, lastPart.length);
         
-        Files.write(createdFile.toPath(), completeData);
-    }
-
     @Override
-    public boolean isPartValid(byte[] data, int checksum) {
-        return ServerSharedBinaryFile.getChecksum(data)==checksum;
+    public void partRequest(int index) {
+        wasRequest = true;
+        groupThread.sendMulticastDatagram(createPartDatagram(index));
     }
     
+    /**
+     * @param part Datagram part data to be sent
+     * @return integrity control number
+     */
+    public static int getChecksum(byte[] part){
+        return part.length;
+    }
 }

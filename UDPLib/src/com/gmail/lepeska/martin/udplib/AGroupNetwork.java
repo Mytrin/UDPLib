@@ -1,10 +1,13 @@
 package com.gmail.lepeska.martin.udplib;
 
 import com.gmail.lepeska.martin.udplib.client.GroupUser;
+import com.gmail.lepeska.martin.udplib.files.IFileShareListener;
+import java.io.File;
 import java.util.List;
+import java.util.Objects;
 
 /**
- * This class serves as cover over UDP multicast communication.
+ * This class serves as a cover over UDP multicast communication.
  * It enables to easily send messages and files to other clients.
  * There are two types of GroupNetwork - HostGroupNetwork and ClientGroupNetwork 
  * Clients usually send all important messages to host, who sends them to all clients.
@@ -85,4 +88,16 @@ public abstract class AGroupNetwork {
    public String getUserName() {
        return groupThread.getUserName();
    }
+   
+    /**
+    * Sends content of file into group, to share it with other client.
+     * 
+     * @param file content to share
+     * @param name unique id
+     * @param listener object to notify about progress
+     */
+    public void shareFile(File file, String name, IFileShareListener listener){
+       Objects.requireNonNull(file);
+       groupThread.shareFile(file, name, listener);
+    }
 }

@@ -1,7 +1,6 @@
 package com.gmail.lepeska.martin.udplib.server;
 
 import com.gmail.lepeska.martin.udplib.util.ConfigLoader;
-import com.gmail.lepeska.martin.udplib.util.Encryptor;
 import com.gmail.lepeska.martin.udplib.AGroupThread;
 import com.gmail.lepeska.martin.udplib.StoredMessage;
 import com.gmail.lepeska.martin.udplib.UDPLibException;
@@ -14,11 +13,6 @@ import com.gmail.lepeska.martin.udplib.datagrams.MessageDatagram;
 import com.gmail.lepeska.martin.udplib.datagrams.UserDeadDatagram;
 import com.gmail.lepeska.martin.udplib.datagrams.UserInfoDatagram;
 import com.gmail.lepeska.martin.udplib.datagrams.explore.ExploreResponse;
-import com.gmail.lepeska.martin.udplib.files.IServerShareListener;
-import com.gmail.lepeska.martin.udplib.files.AServerSharedFile;
-import com.gmail.lepeska.martin.udplib.files.ServerSharedBinaryFile;
-import com.gmail.lepeska.martin.udplib.files.ServerSharedTextFile;
-import java.io.File;
 import java.net.DatagramPacket;
 import java.net.Inet6Address;
 import java.net.InetAddress;
@@ -29,11 +23,9 @@ import java.net.UnknownHostException;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Enumeration;
-import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Objects;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -46,9 +38,7 @@ public class GroupServerThread extends AGroupThread{
     private final List<ServerGroupUser> groupUsers= Collections.synchronizedList(new LinkedList<>());
     /**This thread maintains info about group network*/
     private final ServerGroupInfoThread refreshThread;
-
-    private final HashMap<String, AServerSharedFile> sharedFiles = new HashMap<>();
-    
+   
     /**
      * Creates new GroupServerThread bound on interface of given hostAddress with given password and group address.
      * 
@@ -62,16 +52,11 @@ public class GroupServerThread extends AGroupThread{
      * @throws UnknownHostException 
      */
     public GroupServerThread(String userName, String groupPassword, String hostAddress, String groupAddress, int port, int userInfoPeriod, int deadTime) throws UnknownHostException{
-        Objects.requireNonNull(userName);
-        this.userName = userName;
-        this.groupPassword = groupPassword;
+        super(userName, groupPassword, port);
         this.hostAddress = InetAddress.getByName(hostAddress);
         this.groupAddress = InetAddress.getByName(groupAddress);
-        this.port = port;
         this.refreshThread = new ServerGroupInfoThread(userInfoPeriod, deadTime);
         this.refreshThread.setDaemon(true);
-        this.encryptor = (groupPassword!=null)?new Encryptor(groupPassword):new Encryptor();
-        setDaemon(true);
     }
     
     /**
@@ -244,29 +229,9 @@ public class GroupServerThread extends AGroupThread{
         ADatagram datagram = new MessageDatagram(encryptor, message, true, true);
         sendMulticastDatagram(datagram);
     }
-
-    /**
-     * @param file content to share
-     * @param name unique id
-     * @param listener object to notify about progress
-     */
-    public void shareFile(File file, String name, IServerShareListener listener){
-        AServerSharedFile serverFile;
-        
-        if(file.getName().matches(ServerSharedTextFile.TEXT_FILES)){
-            serverFile = new ServerSharedTextFile(file, name, this, encryptor, refreshThread.getDeadTime(), listener);
-        }else{
-            serverFile = new ServerSharedBinaryFile(file, name, this, encryptor, refreshThread.getDeadTime(), listener);
-        }
-        
-        sharedFiles.put(name, serverFile);
-        Thread sharing = new Thread(serverFile);
-        sharing.setDaemon(true);
-        sharing.start();
-    }
     
     @Override
-    protected void dealWithDatagram(DatagramPacket source, ADatagram datagram) {
+    protected void childDealWithDatagram(DatagramPacket source, ADatagram datagram) {
         String[] messageSplit = datagram.getStringMessage();
         ServerGroupUser user;
         switch(datagram.getType()){
@@ -290,9 +255,6 @@ public class GroupServerThread extends AGroupThread{
             case CLIENT_MULTICAST_MESSAGE:  user = findGroupUserbyInetAddr(source.getAddress());
                                             addMessage(new StoredMessage(Datagrams.reconstructMessage(messageSplit, 0), user, true));
                                             break;
-            case CLIENT_FILE_SHARE_PART_REQUEST: AServerSharedFile requested = sharedFiles.get(messageSplit[0]);
-                                                    if(requested != null) requested.partRequest(Integer.parseInt(messageSplit[1]));
-                                                    break;
             case CLIENT_EXPLORE_REQUEST: sendDatagram(source.getAddress(), new ExploreResponse(groupPassword != null));
                                          break;
         }

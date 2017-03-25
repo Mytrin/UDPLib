@@ -2,12 +2,12 @@ package com.gmail.lepeska.martin.udplib.datagrams.files;
 
 import com.gmail.lepeska.martin.udplib.DatagramTypes;
 import com.gmail.lepeska.martin.udplib.datagrams.ADatagram;
-import com.gmail.lepeska.martin.udplib.files.ServerSharedTextFile;
+import com.gmail.lepeska.martin.udplib.files.SharedTextFile;
 import com.gmail.lepeska.martin.udplib.util.Encryptor;
 import java.net.DatagramPacket;
 
 /**
- * Creates SERVER_FILE_SHARE_PART datagram, which contains indexed part
+ * Creates TEXT_FILE_SHARE_PART datagram, which contains indexed part
  * of file shared by server.
  * 
  * Format: HEAD(N B)TYPE(1B)FILENAME#INDEX#TOTAL#CHECKSUM#PART
@@ -26,9 +26,9 @@ public class FileShareTextPart extends ADatagram{
      * 
      */
     public FileShareTextPart(Encryptor encryptor, String fileName, String filePart, int index, int total) {
-        super(encryptor, DatagramTypes.SERVER_FILE_SHARE_PART);
+        super(encryptor, DatagramTypes.TEXT_FILE_SHARE_PART);
         this.message = fileName+DELIMITER+index+DELIMITER+total+DELIMITER
-                +ServerSharedTextFile.getChecksum(filePart)+DELIMITER+filePart;
+                +SharedTextFile.getChecksum(filePart)+DELIMITER+filePart;
         this.data=createDatagramDataFromString(message);
     }
     
@@ -39,7 +39,7 @@ public class FileShareTextPart extends ADatagram{
      * @param source received packet containing info about true length of datagram
      */
     public FileShareTextPart(Encryptor encryptor, DatagramPacket source) {
-        super(encryptor, DatagramTypes.SERVER_FILE_SHARE_PART);
+        super(encryptor, DatagramTypes.TEXT_FILE_SHARE_PART);
         this.data=source.getData();
         this.message=bytesToString(unpackAndDecrypt(source));
     }

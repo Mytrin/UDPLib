@@ -6,7 +6,7 @@ package com.gmail.lepeska.martin.udplib;
  * @author Martin Lepeška
  */
 public enum DatagramTypes {
-    /**Sent by client to group, requesting all servers to report themselves*/
+    /**Sent by client to group, requesting all servers to report themselves*//**Sent by client to group, requesting all servers to report themselves*//**Sent by client to group, requesting all servers to report themselves*//**Sent by client to group, requesting all servers to report themselves*//**Sent by client to group, requesting all servers to report themselves*//**Sent by client to group, requesting all servers to report themselves*//**Sent by client to group, requesting all servers to report themselves*//**Sent by client to group, requesting all servers to report themselves*//**Sent by client to group, requesting all servers to report themselves*//**Sent by client to group, requesting all servers to report themselves*//**Sent by client to group, requesting all servers to report themselves*//**Sent by client to group, requesting all servers to report themselves*//**Sent by client to group, requesting all servers to report themselves*//**Sent by client to group, requesting all servers to report themselves*//**Sent by client to group, requesting all servers to report themselves*//**Sent by client to group, requesting all servers to report themselves*//**Sent by client to group, requesting all servers to report themselves*//**Sent by client to group, requesting all servers to report themselves*//**Sent by client to group, requesting all servers to report themselves*//**Sent by client to group, requesting all servers to report themselves*//**Sent by client to group, requesting all servers to report themselves*//**Sent by client to group, requesting all servers to report themselves*//**Sent by client to group, requesting all servers to report themselves*//**Sent by client to group, requesting all servers to report themselves*//**Sent by client to group, requesting all servers to report themselves*//**Sent by client to group, requesting all servers to report themselves*//**Sent by client to group, requesting all servers to report themselves*//**Sent by client to group, requesting all servers to report themselves*//**Sent by client to group, requesting all servers to report themselves*//**Sent by client to group, requesting all servers to report themselves*//**Sent by client to group, requesting all servers to report themselves*//**Sent by client to group, requesting all servers to report themselves*//**Sent by client to group, requesting all servers to report themselves*//**Sent by client to group, requesting all servers to report themselves*//**Sent by client to group, requesting all servers to report themselves*//**Sent by client to group, requesting all servers to report themselves*//**Sent by client to group, requesting all servers to report themselves*//**Sent by client to group, requesting all servers to report themselves*//**Sent by client to group, requesting all servers to report themselves*//**Sent by client to group, requesting all servers to report themselves*//**Sent by client to group, requesting all servers to report themselves*//**Sent by client to group, requesting all servers to report themselves*//**Sent by client to group, requesting all servers to report themselves*//**Sent by client to group, requesting all servers to report themselves*//**Sent by client to group, requesting all servers to report themselves*//**Sent by client to group, requesting all servers to report themselves*//**Sent by client to group, requesting all servers to report themselves*//**Sent by client to group, requesting all servers to report themselves*//**Sent by client to group, requesting all servers to report themselves*//**Sent by client to group, requesting all servers to report themselves*//**Sent by client to group, requesting all servers to report themselves*//**Sent by client to group, requesting all servers to report themselves*//**Sent by client to group, requesting all servers to report themselves*//**Sent by client to group, requesting all servers to report themselves*//**Sent by client to group, requesting all servers to report themselves*//**Sent by client to group, requesting all servers to report themselves*//**Sent by client to group, requesting all servers to report themselves*//**Sent by client to group, requesting all servers to report themselves*//**Sent by client to group, requesting all servers to report themselves*//**Sent by client to group, requesting all servers to report themselves*//**Sent by client to group, requesting all servers to report themselves*//**Sent by client to group, requesting all servers to report themselves*//**Sent by client to group, requesting all servers to report themselves*//**Sent by client to group, requesting all servers to report themselves*/
     CLIENT_EXPLORE_REQUEST(0, true),
     /**Sent by server as response to CLIENT_EXPLORE_REQUEST, contains info, if password is requested*/
     SERVER_EXPLORE_RESPONSE(1, true),
@@ -29,15 +29,15 @@ public enum DatagramTypes {
     CLIENT_UNICAST_MESSAGE(10, true),
     CLIENT_MULTICAST_MESSAGE(11, true),
     
-    /**Sent by server automatically or on request by client*/
-    SERVER_FILE_SHARE_PART(12, true),
-    /**Sent by server automatically after sending all SERVER_FILE_SHARE_PARTs, 
+    /**Sent by sharing thread  automatically or on request by client*/
+    TEXT_FILE_SHARE_PART(12, true),
+    /**Sent by sharing thread  automatically after sending all FILE_SHARE_PART, 
      * client may request resending some of them*/
-    SERVER_FILE_SHARE_FINISH(13, true),
-    /**Sent by client after SERVER_FILE_SHARE_FINISH to obtain missing SERVER_FILE_SHARE_PARTs*/
-    CLIENT_FILE_SHARE_PART_REQUEST(14, true),
-    /**Sent by server automatically or on request by client*/
-    SERVER_BINARY_FILE_SHARE_PART(15, false),
+    FILE_SHARE_FINISH(13, true),
+    /**Sent by receiving thread after FILE_RECEIVE_FINISH to obtain missing FILE_SHARE_PART*/
+    FILE_SHARE_PART_REQUEST(14, true),
+    /**Sent by sharing thread automatically or on request by client*/
+    BINARY_FILE_SHARE_PART(15, false),
     
     TRASH(-1, false),
     THE_ANSWER(42, false); // :-)

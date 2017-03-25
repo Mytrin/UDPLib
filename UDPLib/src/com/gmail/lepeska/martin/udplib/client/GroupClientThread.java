@@ -2,7 +2,6 @@ package com.gmail.lepeska.martin.udplib.client;
 
 import com.gmail.lepeska.martin.udplib.util.ConfigLoader;
 import com.gmail.lepeska.martin.udplib.DatagramTypes;
-import com.gmail.lepeska.martin.udplib.util.Encryptor;
 import com.gmail.lepeska.martin.udplib.AGroupThread;
 import com.gmail.lepeska.martin.udplib.StoredMessage;
 import com.gmail.lepeska.martin.udplib.UDPLibException;
@@ -11,9 +10,6 @@ import com.gmail.lepeska.martin.udplib.datagrams.AccessRequestDatagram;
 import com.gmail.lepeska.martin.udplib.datagrams.Datagrams;
 import com.gmail.lepeska.martin.udplib.datagrams.IsAliveDatagram;
 import com.gmail.lepeska.martin.udplib.datagrams.MessageDatagram;
-import com.gmail.lepeska.martin.udplib.files.ASharedFile;
-import com.gmail.lepeska.martin.udplib.files.SharedBinaryFile;
-import com.gmail.lepeska.martin.udplib.files.SharedTextFile;
 import java.io.File;
 import java.io.IOException;
 import java.net.DatagramPacket;
@@ -25,10 +21,8 @@ import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Objects;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -37,11 +31,6 @@ import java.util.logging.Logger;
  * @author Martin Lepeška
  */
 public class GroupClientThread extends AGroupThread {
-
-    /**
-     * Files received in group
-     */
-    private final HashMap<String, ASharedFile> sharedFiles = new HashMap<>();
 
     /**
      * Users in group
@@ -65,24 +54,8 @@ public class GroupClientThread extends AGroupThread {
      * @throws UnknownHostException
      */
     public GroupClientThread(String userName, String groupPassword, String serverAddress, int port) throws UnknownHostException {
-        Objects.requireNonNull(userName);
-        this.userName = userName;
-        this.groupPassword = groupPassword;
+        super(userName, groupPassword, port);
         this.serverAddress = InetAddress.getByName(serverAddress);
-        this.port = port;
-        this.encryptor = (groupPassword != null) ? new Encryptor(groupPassword) : new Encryptor();
-        setDaemon(true);
-    }
-
-    /**
-     * Automatically called from SharedFile, when ti creates new temporary file
-     *
-     * @param file temporary file containing shared content from network
-     */
-    public void receiveFile(File file) {
-        listeners.stream().forEach((listener) -> {
-            listener.fileReceived(file);
-        });
     }
 
     /**
@@ -181,9 +154,8 @@ public class GroupClientThread extends AGroupThread {
     }
 
     @Override
-    protected void dealWithDatagram(DatagramPacket source, ADatagram datagram) {
+    protected void childDealWithDatagram(DatagramPacket source, ADatagram datagram) {
         String[] messageSplit = datagram.getStringMessage();
-        byte[] datagramData = datagram.getBinaryMessage();
 
         GroupUser user;
         try {
@@ -218,44 +190,6 @@ public class GroupClientThread extends AGroupThread {
                     break;
                 case SERVER_IS_ALIVE_REQUEST:
                     sendDatagram(serverAddress, new IsAliveDatagram(encryptor, false));
-                    break;
-                case SERVER_FILE_SHARE_PART:
-                    String fileName = messageSplit[0];
-                    ASharedFile file = sharedFiles.get(fileName);
-                    if (file == null) {
-                        file = new SharedTextFile(fileName, Integer.parseInt(messageSplit[2]), this, encryptor, serverAddress);
-                        sharedFiles.put(fileName, file);
-                    }
-                    //in case of splitting because of DELIMITER...
-                    String line =  Datagrams.reconstructMessage(messageSplit, 4);
-
-                    if (!file.isPartValid(line, Integer.parseInt(messageSplit[3]))) {
-                        break;
-                    }
-
-                    file.setPart(Integer.parseInt(messageSplit[1]), line);
-                    break;
-                case SERVER_BINARY_FILE_SHARE_PART:
-                    ASharedFile binaryFile = sharedFiles.get(messageSplit[0]);
-                    if (binaryFile == null) {
-                        binaryFile = new SharedBinaryFile(messageSplit[0], Integer.parseInt(messageSplit[2]), this, encryptor, serverAddress);
-                        sharedFiles.put(messageSplit[0], binaryFile);
-                    }
-
-                    if (!binaryFile.isPartValid(datagramData, Integer.parseInt(messageSplit[3]))) {
-                        break;
-                    }
-
-                    binaryFile.setPart(Integer.parseInt(messageSplit[1]), datagramData);
-
-                    break;
-                case SERVER_FILE_SHARE_FINISH:
-                    ASharedFile finishedFile = sharedFiles.get(messageSplit[0]);
-                    if (finishedFile != null) {
-                        finishedFile.finished();
-                    } else {
-                        Logger.getLogger(ConfigLoader.class.getName()).log(Level.WARNING, "Shared file not found: {0}", messageSplit[0]);
-                    }//else it's too late to request new 
                     break;
                 case CLIENT_UNICAST_MESSAGE:
                     user = findGroupUserbyInetAddr(source.getAddress());

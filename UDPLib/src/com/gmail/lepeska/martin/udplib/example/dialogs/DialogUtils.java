@@ -1,7 +1,7 @@
 package com.gmail.lepeska.martin.udplib.example.dialogs;
 
 import com.gmail.lepeska.martin.udplib.example.Example;
-import com.gmail.lepeska.martin.udplib.files.ServerSharedTextFile;
+import com.gmail.lepeska.martin.udplib.files.SharedTextFile;
 import java.io.File;
 import java.nio.file.Files;
 import java.util.LinkedList;
@@ -19,7 +19,7 @@ public class DialogUtils {
     public static void showFileDialog(File file) {
         
         try {
-            if(!file.getName().matches(ServerSharedTextFile.TEXT_FILES)) return;
+            if(!file.getName().matches(SharedTextFile.TEXT_FILES)) return;
             final LinkedList<String> data = new LinkedList<>();
 
             Files.lines(file.toPath()).forEach((String t) -> data.add(t));

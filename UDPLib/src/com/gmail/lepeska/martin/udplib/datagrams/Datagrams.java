@@ -55,10 +55,10 @@ public class Datagrams {
             case CLIENT_MULTICAST_MESSAGE:
             case CLIENT_UNICAST_MESSAGE: return new MessageDatagram(encryptor, datagram);
             //File sharing
-            case SERVER_FILE_SHARE_PART: return new FileShareTextPart(encryptor, datagram);
-            case SERVER_BINARY_FILE_SHARE_PART: return new FileShareBinaryPart(encryptor, datagram);
-            case SERVER_FILE_SHARE_FINISH: return new FileShareFinish(encryptor, datagram);
-            case CLIENT_FILE_SHARE_PART_REQUEST: return new FileSharePartRequest(encryptor, datagram);
+            case TEXT_FILE_SHARE_PART: return new FileShareTextPart(encryptor, datagram);
+            case BINARY_FILE_SHARE_PART: return new FileShareBinaryPart(encryptor, datagram);
+            case FILE_SHARE_FINISH: return new FileShareFinish(encryptor, datagram);
+            case FILE_SHARE_PART_REQUEST: return new FileSharePartRequest(encryptor, datagram);
             //Access
             case CLIENT_ACCESS_REQUEST: return new AccessRequestDatagram(encryptor, datagram);
             case SERVER_ACCEPT_CLIENT_RESPONSE: return new AccessResponseDatagram(encryptor, datagram);

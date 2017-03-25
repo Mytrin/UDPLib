@@ -3,6 +3,8 @@ package com.gmail.lepeska.martin.udplib;
 import com.gmail.lepeska.martin.udplib.util.Encryptor;
 import com.gmail.lepeska.martin.udplib.client.GroupUser;
 import com.gmail.lepeska.martin.udplib.datagrams.ADatagram;
+import com.gmail.lepeska.martin.udplib.files.FileSharing;
+import java.io.File;
 import java.net.DatagramPacket;
 import java.net.InetAddress;
 import java.net.MulticastSocket;
@@ -13,6 +15,9 @@ import java.util.Collections;
 import java.util.Enumeration;
 import java.util.LinkedList;
 import java.util.List;
+import com.gmail.lepeska.martin.udplib.files.IFileShareListener;
+import java.net.UnknownHostException;
+import java.util.Objects;
 
 /**
  * Common methods and components of GroupRunnables.
@@ -30,27 +35,39 @@ public abstract class AGroupThread extends Thread{
    /**Host's IP address*/
    protected InetAddress hostAddress;
    /**Used port*/
-   protected int port;
+   protected final int port;
    
    /**This is UGLY, but necessary - multicast does not mean multi interface*/
-   protected LinkedList<MulticastSocket> sendSockets = new LinkedList<>();
+   protected final LinkedList<MulticastSocket> sendSockets = new LinkedList<>();
    
    //AUTHENTICATION
    /**User's name in network*/
-   protected String userName;
+   protected final String userName;
    /**Group password*/
-   protected String groupPassword="none";
+   protected final String groupPassword;
    
    //DATA
    /**Received messages*/
-   protected List<StoredMessage> messages= Collections.synchronizedList(new LinkedList<>());
+   protected final List<StoredMessage> messages= Collections.synchronizedList(new LinkedList<>());
    /**Class responsible for encrypting and decrypting messages*/
-   protected Encryptor encryptor;
+   protected final Encryptor encryptor;
    
    //USER
    /**User defined listeners*/
    protected List<IGroupListener> listeners = Collections.synchronizedList(new LinkedList<>());
 
+   protected final FileSharing fileSharing;
+   
+    public AGroupThread(String userName, String groupPassword, int port) throws UnknownHostException{
+        setDaemon(true);
+        Objects.requireNonNull(userName);
+        this.userName = userName;
+        this.groupPassword = groupPassword;
+        this.port = port;
+        this.encryptor = (groupPassword!=null)?new Encryptor(groupPassword):new Encryptor();
+        this.fileSharing = new FileSharing(this, encryptor);
+    }
+   
    /**
     * @return Group IP
     */
@@ -126,8 +143,26 @@ public abstract class AGroupThread extends Thread{
     * @param source DatagramPacket containing UDPLib datagram
     * @param datagram  reconstructed datagram
     */
-   protected abstract void dealWithDatagram(DatagramPacket source, ADatagram datagram);
+   protected final void dealWithDatagram(DatagramPacket source, ADatagram datagram){
+       String[] messageSplit = datagram.getStringMessage();
+       byte[] datagramData = datagram.getBinaryMessage();
+       InetAddress sourceAddress = source.getAddress();
+       
+       switch(datagram.getType()){
+            case FILE_SHARE_PART_REQUEST:   fileSharing.onFileSharePartRequest(messageSplit, sourceAddress);
+                                            break;
+            case TEXT_FILE_SHARE_PART:      fileSharing.onTextPart(messageSplit, sourceAddress);
+                                            break;
+            case BINARY_FILE_SHARE_PART:    fileSharing.onBinaryPart(messageSplit, datagramData, sourceAddress);
+                                            break;
+            case FILE_SHARE_FINISH:         fileSharing.onFileShareFinish(messageSplit, sourceAddress);
+                                            break;
+            default:    childDealWithDatagram(source, datagram);
+       }
+   }
 
+   protected abstract void childDealWithDatagram(DatagramPacket source, ADatagram datagram);
+   
    /**
     * Sends datagram with given data to specified GroupUser
     * @param target who should receive this datagram
@@ -214,4 +249,26 @@ public abstract class AGroupThread extends Thread{
         }
         return null;
    }   
+   
+   
+    /**
+     * Automatically called from SharedFile, when ti creates new temporary file
+     *
+     * @param file temporary file containing shared content from network
+     */
+    public void receiveFile(File file) {
+        listeners.stream().forEach((listener) -> {
+            listener.fileReceived(file);
+        });
+    }
+   
+    /**
+     * @param file content to share
+     * @param name unique id
+     * @param listener object to notify about progress
+     */
+    public void shareFile(File file, String name, IFileShareListener listener){
+        fileSharing.shareFile(file, name, listener);
+    }
+    
 }

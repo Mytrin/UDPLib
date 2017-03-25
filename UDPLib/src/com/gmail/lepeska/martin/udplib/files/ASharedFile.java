@@ -1,97 +1,92 @@
 package com.gmail.lepeska.martin.udplib.files;
 
+import com.gmail.lepeska.martin.udplib.AGroupThread;
 import com.gmail.lepeska.martin.udplib.UDPLibException;
-import com.gmail.lepeska.martin.udplib.client.GroupClientThread;
+import com.gmail.lepeska.martin.udplib.datagrams.ADatagram;
+import com.gmail.lepeska.martin.udplib.datagrams.files.FileShareFinish;
 import com.gmail.lepeska.martin.udplib.util.Encryptor;
 import java.io.File;
 import java.io.IOException;
-import java.net.InetAddress;
-
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
- *
- * SharedFile is client representation of file shared at network.
+ * Class representing file, which will be divided into segments and shared to 
+ * GroupNetwork.
  * 
  * @author Martin Lepeška
- * 
- * @param <T> type of part data
  */
-public abstract class ASharedFile<T> {
-    protected final String name;
-    
-    protected final GroupClientThread client;
+public abstract class ASharedFile implements Runnable{
+    protected final File fileToShare;
+    final String name;
+    protected final AGroupThread groupThread;
+    private final int deadTime;
     protected final Encryptor encryptor;
-    protected final InetAddress server;
+    private final IFileShareListener listener;
     
-    private boolean isFinished = false;
+    /**Flag, that thread should not finish this cycle*/
+    protected volatile boolean wasRequest = true;
     
-    private File createdFile;
     /**
-     * 
-     * @param name Unique name of file
-     * @param client Thread with socket, which can SharedFile use for CLIENT_FILE_SHARE_PART_REQUEST
-     * @param encryptor object responsible for encrypting requests
-     * @param server server ip
+     * @param fileToShare Data to share
+     * @param name Unique String ID, under which will be file accessible at AGroupNetwork class
+     * @param groupThread Thread responsible for sending datagrams to group
+     * @param encryptor Class responsible for encrypting file content on network
+     * @param deadTime Time, which will server wait after finishing file sharing. At this time client may request resending some of the parts
+     * @param listener can be null, object which will be notified about success/fail
      */
-    public ASharedFile(String name, GroupClientThread client, Encryptor encryptor, InetAddress server){
+    public ASharedFile(File fileToShare, String name, AGroupThread groupThread, Encryptor encryptor, int deadTime, IFileShareListener listener){
+        this.fileToShare = fileToShare;
+        this.deadTime = deadTime;
+        this.groupThread = groupThread;
         this.name = name;
-        this.client = client;
         this.encryptor = encryptor;
-        this.server = server;
-    }
-        
-    /**
-     * Saves received data to temporary structure, before they are written to file
-     * @param index place of part
-     * @param content  part data
-     */
-    public abstract void setPart(int index, T content);
-    
-    /**
-     * Called from client thread when received SERVER_FILE_SHARE_FINISH
-     */
-    public void finished(){
-        if(!isFinished){
-            isFinished = finishOrRequest();
-            if(isFinished){
-                createFile();
-            }
-        }else{
-            createFile();
-        }
+        this.listener = listener;
     }
     
-    /**
-     * In case some parts are missing, request server for resending them
-     * @return  true, if all parts have been gathered
-     */
-    protected abstract boolean finishOrRequest();
-    
-    /**
-     * Creates file from complete parts
-     */
-    private void createFile(){
+    @Override
+    public void run() {
         try{
-            createdFile = File.createTempFile(name, ".tmp"); 
-            fillFile(createdFile);
-            client.receiveFile(createdFile);
-        }catch(Exception e){
-            throw new UDPLibException("Cannot create temporary file:", e);
+            readFile();
+
+            sendPartDatagrams();
+            
+            ADatagram datagram = new FileShareFinish(encryptor, name);
+            
+            while(wasRequest){
+                wasRequest = false;
+                groupThread.sendMulticastDatagram(datagram);
+                
+                Thread.sleep(deadTime);
+            }
+            
+            if(listener != null) listener.onFinished(fileToShare);
+        }catch(InterruptedException e){
+             Logger.getLogger(ASharedFile.class.getName()).log(Level.WARNING, "Shutting down ServerSharedFileThread...");
+             if(listener != null) listener.onFail(fileToShare, e);
+        }catch(IOException ex){
+            if(listener != null) listener.onFail(fileToShare, ex);
+            throw new UDPLibException("File sharing problem: ", ex);
         }
     }
     
     /**
-     * Writes received data into shared file
-     * @param createdFile file with name received from Server
-     * @throws java.io.IOException
+     * Sends parts loaded by readFile() to clients
+     * @throws InterruptedException 
      */
-    protected abstract void fillFile(File createdFile)throws IOException;
+    protected abstract void sendPartDatagrams() throws InterruptedException;
     
     /**
-     * @param data Data of received part
-     * @param checksum control sum received from server
-     * @return true, if client calculated checksum is same as server checksum
+     * Loads file given in constructor
+     * @throws IOException
+     * @throws UDPLibException 
      */
-    public abstract boolean isPartValid(T data, int checksum);
+    protected abstract void readFile() throws IOException, UDPLibException;
+    
+    /**
+     * Called from server thread, when it received CLIENT_FILE_SHARE_PART_REQUEST
+     * @param index index of requested part
+     */
+    public abstract void partRequest(int index);
     
 }
