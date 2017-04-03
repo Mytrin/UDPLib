@@ -11,7 +11,6 @@ import com.gmail.lepeska.martin.udplib.example.dialogs.DialogUtils;
 import com.gmail.lepeska.martin.udplib.example.dialogs.ExploreDialog;
 import com.gmail.lepeska.martin.udplib.example.dialogs.JoinDialog;
 import com.gmail.lepeska.martin.udplib.explore.AvailableServerRecord;
-import com.gmail.lepeska.martin.udplib.server.ServerGroupNetwork;
 import java.io.File;
 import java.net.URL;
 import java.util.List;
@@ -216,7 +215,7 @@ public class ExampleController implements Initializable, IGroupListener {
     }
 
     @Override
-    public void fileReceived(File receivedFile) {
+    public void fileReceived(String fileID, File receivedFile) {
         Platform.runLater(() -> {
             fileView.getItems().add(receivedFile);
         });

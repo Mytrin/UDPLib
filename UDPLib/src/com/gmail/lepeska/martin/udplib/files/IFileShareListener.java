@@ -4,7 +4,7 @@ import java.io.File;
 
 /**
  *
- * Simple listener for server side of file sharing 
+ * Simple listener for distributor side of file sharing 
  * 
  * @author Martin Lepeška
  */

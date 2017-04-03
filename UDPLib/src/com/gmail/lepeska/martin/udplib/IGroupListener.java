@@ -41,7 +41,8 @@ public interface IGroupListener {
     
     /**
      * Called when client received new file
+     * @param fileID name of received file
      * @param receivedFile newly received file
      */
-    public void fileReceived(File receivedFile);
+    public void fileReceived(String fileID, File receivedFile);
 }

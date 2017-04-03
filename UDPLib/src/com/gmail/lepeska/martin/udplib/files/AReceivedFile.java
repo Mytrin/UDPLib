@@ -74,7 +74,7 @@ public abstract class AReceivedFile<T> {
         try{
             createdFile = File.createTempFile(name, ".tmp"); 
             fillFile(createdFile);
-            client.receiveFile(createdFile);
+            client.receiveFile(name, createdFile);
         }catch(Exception e){
             throw new UDPLibException("Cannot create temporary file:", e);
         }

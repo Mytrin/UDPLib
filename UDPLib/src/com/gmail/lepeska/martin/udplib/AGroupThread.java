@@ -254,11 +254,12 @@ public abstract class AGroupThread extends Thread{
     /**
      * Automatically called from SharedFile, when ti creates new temporary file
      *
+     * @param fileID Name of file
      * @param file temporary file containing shared content from network
      */
-    public void receiveFile(File file) {
+    public void receiveFile(String fileID, File file) {
         listeners.stream().forEach((listener) -> {
-            listener.fileReceived(file);
+            listener.fileReceived(fileID, file);
         });
     }
    
