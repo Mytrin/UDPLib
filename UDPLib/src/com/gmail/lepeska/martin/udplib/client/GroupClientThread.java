@@ -100,7 +100,7 @@ public class GroupClientThread extends AGroupThread {
                     GroupUser me = new GroupUser(userName, hostAddress);
 
                     this.groupUsers.add(me);
-                    listeners.stream().forEach((listener) -> {
+                    inkoveListenerEvent((listener) -> {
                         listener.joined(me);
                     });
                 } else {
@@ -168,7 +168,7 @@ public class GroupClientThread extends AGroupThread {
                         GroupUser newUser = new GroupUser(messageSplit[0], !messageSplit[1].equals("0.0.0.0") ? InetAddress.getByName(messageSplit[1]) : serverAddress);
                         newUser.setPingToHost(Long.parseLong(messageSplit[2]));
                         groupUsers.add(newUser);
-                        listeners.stream().forEach((listener) -> {
+                        inkoveListenerEvent((listener) -> {
                             listener.userJoined(newUser);
                         });
                     }
@@ -182,7 +182,7 @@ public class GroupClientThread extends AGroupThread {
                             finishThread();
                             throw new UDPLibException("Kicked out from group!");
                         } else {
-                            listeners.stream().forEach((listener) -> {
+                            inkoveListenerEvent((listener) -> {
                                 listener.userKicked(kickedUser);
                             });
                         }

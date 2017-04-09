@@ -18,6 +18,7 @@ import java.util.List;
 import com.gmail.lepeska.martin.udplib.files.IFileShareListener;
 import java.net.UnknownHostException;
 import java.util.Objects;
+import java.util.function.Consumer;
 
 /**
  * Common methods and components of GroupRunnables.
@@ -270,6 +271,11 @@ public abstract class AGroupThread extends Thread{
      */
     public void shareFile(File file, String name, IFileShareListener listener){
         fileSharing.shareFile(file, name, listener);
+    }
+    
+    protected void inkoveListenerEvent(Consumer<IGroupListener> consumer){
+        LinkedList<IGroupListener> saveListeners =  new LinkedList<>(listeners);
+        listeners.forEach(consumer);
     }
     
 }

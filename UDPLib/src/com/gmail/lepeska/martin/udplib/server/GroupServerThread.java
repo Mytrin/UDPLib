@@ -105,7 +105,7 @@ public class GroupServerThread extends AGroupThread{
             
             ServerGroupUser me = new ServerGroupUser(userName, hostAddress);
             groupUsers.add(me);
-            listeners.stream().forEach((listener) -> {
+            inkoveListenerEvent((listener) -> {
                 listener.joined(me);
             });
         }catch(Exception e){
@@ -199,7 +199,7 @@ public class GroupServerThread extends AGroupThread{
             if(user.pingsLeft() > ServerGroupUser.DEAD_COUNT){
                 sendMulticastDatagram(new UserDeadDatagram(encryptor, user));
                 
-                listeners.stream().forEach((listener) -> {
+                inkoveListenerEvent((listener) -> {
                    listener.userKicked(user);
                 });
                 
@@ -239,7 +239,7 @@ public class GroupServerThread extends AGroupThread{
                                             ServerGroupUser newUser = new ServerGroupUser(messageSplit[1], source.getAddress());
                                             groupUsers.add(newUser);
                                             sendDatagram(source.getAddress(), new AccessResponseDatagram(encryptor, groupAddress, source.getAddress(), true));
-                                            listeners.stream().forEach((listener) -> {
+                                            inkoveListenerEvent((listener) -> {
                                                 listener.userJoined(newUser);
                                             });
                                         }else{
