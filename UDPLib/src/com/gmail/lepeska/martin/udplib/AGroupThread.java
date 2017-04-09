@@ -275,7 +275,7 @@ public abstract class AGroupThread extends Thread{
     
     protected void inkoveListenerEvent(Consumer<IGroupListener> consumer){
         LinkedList<IGroupListener> saveListeners =  new LinkedList<>(listeners);
-        listeners.forEach(consumer);
+        saveListeners.forEach(consumer);
     }
     
 }
