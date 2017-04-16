@@ -162,10 +162,7 @@ public class GroupServerThread extends AGroupThread{
 
     @Override
     public List<GroupUser> getCurrentGroupUsers() {
-       LinkedList<GroupUser> groupUsersToReturn = new LinkedList<>();
-       Collections.copy(groupUsersToReturn, groupUsers);
-
-       return groupUsersToReturn;
+       return new LinkedList<>(groupUsers);
     }
     
     /**
